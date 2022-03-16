@@ -1,0 +1,22 @@
+{
+    "name": "lihoy/moysklad",
+    "description": "moysklad api client",
+    "homepage": "https://github.com/li-hoy/moysklad",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pavel Likhosherst",
+            "email": "pe@likhosherst.ru",
+            "role": "Creator"
+        }
+    ],
+    "require": {
+        "php": ">=7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lihoy\\MoySklad\\": "/"
+        }
+    }
+}
