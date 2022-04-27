@@ -92,6 +92,52 @@ class Client
         return $list;
     }
 
+    /**
+     * filter operators =, !=, <, >, <=, >=
+     */
+    public function filter(
+        array $list,
+        array $filter
+    ) {
+        foreach ($list as $key=>$value) {
+            $filtered = false;
+            foreach ($filter as $rule) {
+                $fieldKey = $rule[0];
+                $op = $rule[1];
+                $fieldValue = $rule[2];
+                $filtered = false;
+                if ($op === '=' && $fieldValue != $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+                if ($op === '!=' && $fieldValue == $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+                if ($op === '<' && $fieldValue >= $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+                if ($op === '>' && $fieldValue <= $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+                if ($op === '<=' && $fieldValue > $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+                if ($op === '>=' && $fieldValue < $value->$fieldKey) {
+                    $filtered = true;
+                    break;
+                }
+            }
+            if ($filtered) {
+                unset($list[$key]);
+            }
+        }
+        return array_values($list);
+    }
+
     public function getMetadata(string $entityType)
     {
         return $this->query(static::ENTITY_HREF."/{$entityType}/metadata")
@@ -103,7 +149,7 @@ class Client
     {
         return $this->query(static::HOOK_HREF."/{$id}")->get()->parseJson();
     }
-    
+
     public function getWebhooks(array $filter = [])
     {
         $webhookList = $this->query(static::HOOK_HREF)->get()->parseJson()->rows;
