@@ -61,42 +61,55 @@ class Entity extends \Lihoy\Moysklad\Base
     {
         $out = (object) [];
         foreach ($fieldNameList as $fieldName) {
-            if (isset($entity->$fieldName)) {
+            if (isset($this->$fieldName)) {
                 $out->$fieldName = $this->$fieldName;
             }
         }
         return $out;
     }
 
-     /**
-     *  by default ms return 25 events - max = 100
+    /**
+     *  by default ms api return 25 events - max = 100
      */
-    public function getEvents(int $limit = null)
+    public function getEvents(object $entity, int $limit = null, int $offset = null)
     {
-        $uri = $this->meta->href."/audit";
-        if (false === is_null($limit)) {
-            $uri = $uri."?limit={$limit}";
+        $queryLimit = 100;
+        if ($limit && $limit < $queryLimit) {
+            $queryLimit = $limit;
         }
-        return $this->client->query($uri)->get()->parseJson()->rows;
-    }
-
-    public function getEmployeeByUid(string $uid)
-    {
-        $employeeList = $this->client->getEntities('employee', [['uid', '=', $uid]]);
-        if (empty($employeeList)) {
-            throw new Exception("Employee with $uid doesn`t exist.");
-        }
-        $employee = $employeeList[0];
-        return $employee;
+        $offset = is_null($offset) ? 0 : $offset;
+        $totalCount = 0;
+        $eventList = [];
+        do {
+            $href = $entity->meta->href."/audit?limit=".$queryLimit."&offest=".$offset;
+            $response = $this->httpClient->get($href)->getBody()->getContents();
+            $rows = $response->rows;
+            if (is_null($limit)) {
+                $limit = $response->meta->size - $offset;
+            }
+            $eventList = array_merge($eventList, $rows);
+            $totalCount = $totalCount + count($rows);
+            $offset = $offset + count($rows);
+            $remainder = empty($remainder)
+                ? $limit - count($rows)
+                : $remainder - count($rows);
+            $queryLimit = $queryLimit <= $remainder ? $queryLimit : $remainder;
+            if (($remainder + $queryLimit) > $limit) {
+                $queryLimit = $limit - $totalCount;
+            }
+        } while ($totalCount < $limit);
+        return $eventList;
     }
 
     public function getLinkedEntities(
+        object $entity,
         string $searchType,
         ?int $recursive = null,
-        int $limit = 10
+        int $limit = 10,
+        $expand = null
     ) {
         $resultLinkedEntityList = [];
-        foreach($this as $linkedEnitiesType=>$linkedEntityList) {
+        foreach($entity as $linkedEnitiesType=>$linkedEntityList) {
             if (in_array($linkedEnitiesType, ['attributes', 'positions'])) {
                 continue;
             }
@@ -126,7 +139,7 @@ class Entity extends \Lihoy\Moysklad\Base
                         break;
                     }
                 }
-                $linkedEntityList = $this->getEntities($entityType, $filterList);
+                $linkedEntityList = $this->getEntities($entityType, $filterList, $expand);
                 foreach ($linkedEntityList as $linkedEntity) {
                     $recurciveLinkedEntityList = array_merge(
                         $recurciveLinkedEntityList,

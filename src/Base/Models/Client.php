@@ -2,58 +2,73 @@
 
 namespace Lihoy\Moysklad\Base\Models;
 
+use GuzzleHttp\Client as  HttpClient;
+use Lihoy\Moysklad\Base\Models\Entity;
+
 class Client
 {
-    private $queryOptions, $credentials;
+    private $queryDelay, $requestOptions, $credentials;
 
     const
-        HREF_BASE = "https://online.moysklad.ru/api/remap/1.2",
-        ENTITY_HREF = "https://online.moysklad.ru/api/remap/1.2/entity",
-        HOOK_HREF = "https://online.moysklad.ru/api/remap/1.2/entity/webhook",
-        QUERY_DELAY = 0.2;
+        BASE_URI = "https://online.moysklad.ru/api/remap/1.2",
+        ENTITY_URI = "/entity",
+        HOOK_URI = "/entity/webhook",
+        METADATA_URI = "/metadata",
+        POST_DATA_FORMAT = 'json',
+        DEFAULT_REQUEST_DELAY = 0.2,
+        DEFAULT_REQUEST_TIMEOUT = 10.0;
 
     public function __construct($login, $pass)
     {
-        $this->credentials = base64_encode($login.':'.$pass);
-        $this->queryOptions = [
+        $this->token = base64_encode($login.':'.$pass);
+        $this->requestOptions = [
             'headers' => [
-                'Authorization' => "Basic $this->credentials",
+                'Authorization' => "Basic $this->token",
             ],
-            'post_data_format' => 'json',
+            'delay' => static::DEFAULT_REQUEST_DELAY,
+            'timeout' => static::DEFAULT_REQUEST_TIMEOUT
         ];
+        $this->httpClient = new HttpClient($this->requestOptions);
     }
 
-    public function getCredentials()
+    public function getToken()
     {
-        return $this->credentials;
+        return $this->token;
     }
 
-    public function getQueryOptions()
+    public function getRequestOptions()
     {
-        return $this->queryOptions;
+        return $this->requestOptions;
     }
 
-    public function query(string $url)
+    public function setRequestOption(string $key, $value)
     {
-        msleep(static::QUERY_DELAY);
-        $response = new Query($url, $this->queryOptions);
-        if (isset($response->errors)) {
-            throw new Exception("Get entity error.");
+        $this->requestOptions[$key] = $value;
+        if (is_null($value)) {
+            unset($this->requestOptions[$key]);
         }
-        return $response;
+        $this->httpClient = new HttpClient($this->requestOptions);
+        return $this;
     }
 
     public function getEntityById(
         string $entityType,
-        string $id
+        string $id,
+        ?string $expand = null
     ) {
         $href = self::ENTITY_HREF."/".$entityType.'/'.$id;
-        return $this->getEntityByHref($href);
+        return $this->getEntityByHref($href, $expand);
     }
 
-    public function getEntityByHref(string $href)
-    {
-        $entity = $this->query($href)->get()->parseJson();
+    public function getEntityByHref(
+        string $href,
+        ?string $expand = null
+    ) {
+        if ($expand) {
+            $href = $href.'?expand='.$expand;
+        }
+        $entityData = $this->httpClient->get($href)->getBody()->getContents();
+        $entity = new Entity($this, $entityData);
         return $entity;
     }
 
@@ -65,11 +80,15 @@ class Client
      */
     public function getEntities(
         string $entityType,
-        array $filterList = []
+        array $filterList = [],
+        string $expand = null
     ) {
-        $limit = 1000;
+        $queryLimit = 1000;
         $offset = 0;
-        $href_base = self::ENTITY_HREF."/".$entityType."?limit=".$limit;
+        $href_base = self::ENTITY_HREF."/".$entityType."?limit=".$queryLimit;
+        if ($expand) {
+            $href_base = $href_base.'&expand='.$expand;
+        }
         if (false === empty($filterList)) {
             $filterURI = "filter=";
             for ($i = 0; $i < count($filterList); $i++) {
@@ -85,11 +104,46 @@ class Client
         $list = [];
         do {
             $href = $href_base."&offset=".$offset;
-            $responseList = $this->query($href)->get()->parseJson()->rows ?? [];
-            $list = array_merge($list, $responseList);
-            $offset = $offset + $limit;
-        } while (count($responseList) === $limit);
+            $response = $this->httpClient->get($href)->getBody()->getContents();
+            $entityDataList = $response->rows;
+            foreach ($entityDataList as $entityData) {
+                $list[] = new Entity($this, $entityData);
+            }
+            $offset = $offset + $queryLimit;
+        } while (count($responseList) === $queryLimit);
         return $list;
+    }
+
+    public function getEmployeeByUid(string $uid)
+    {
+        $employeeList = $this->getEntities('employee', [['uid', '=', $uid]]);
+        if (empty($employeeList)) {
+            throw new Exception("Employee with $uid doesn`t exist.");
+        }
+        return $employeeList[0];
+    }
+
+    public function getAuditEvent($auditHref, $entityType, $eventType, $uid)
+    {
+        $eventType = mb_strtolower($eventType);
+        $entityType = mb_strtolower($entityType);
+        $eventList = $this->httpClient->get($auditHref.'/events')->parseJson()->rows;
+        $filteredEventList = array_values(array_filter(
+            $eventList,
+            function($event)use($entityType, $eventType, $uid) {
+                return
+                    $event->eventType === $eventType
+                    && $event->entityType === $entityType
+                    && $event->uid === $uid;
+            }
+        ));
+        if (count($filteredEventList) > 1) {
+            throw new \Exception("Events filtering error.");
+        }
+        if (empty($filteredEventList[0])) {
+            throw new \Exception("No event matching parameters: $entityType, $eventType, $uid, $auditHref");
+        }
+        return $filteredEventList[0];
     }
 
     /**
@@ -140,19 +194,27 @@ class Client
 
     public function getMetadata(string $entityType)
     {
-        return $this->query(static::ENTITY_HREF."/{$entityType}/metadata")
-                    ->get()
-                    ->parseJson();
+        return $this->httpClient
+                    ->get(
+                        static::BASE_URI.
+                        static::ENTITY_URI.
+                        "/{$entityType}".
+                        static::METADATA_URI)
+                    ->getBody()->getContents();
     }
 
     public function getWebhook(string $id)
     {
-        return $this->query(static::HOOK_HREF."/{$id}")->get()->parseJson();
+        return $this->httpClient
+                    ->get(static::BASE_URI.static::HOOK_URI."/{$id}")
+                    ->getBody()->getContents();
     }
 
     public function getWebhooks(array $filter = [])
     {
-        $webhookList = $this->query(static::HOOK_HREF)->get()->parseJson()->rows;
+        $webhookList = $this->httpClient
+                            ->get(static::BASE_URI.static::HOOK_URI)
+                            ->getBody()->getContents();
         if (empty($filter)) {
             return $webhookList;
         }
@@ -170,20 +232,24 @@ class Client
             $subscriptionParts = explode('.', $subscription);
             $entityType = $subscriptionParts[0];
             $action = $subscriptionParts[1];
-            $filtered = array_values(array_filter($actualSubscriptionList, function ($hook)use($entityType, $action) {
-                if ($hook->entityType === $entityType && $hook->action === mb_strtoupper($action)) {
+            $filtered = array_filter(
+                $actualSubscriptionList,
+                function($hook)use($entityType, $action) {
+                    return $hook->entityType === $entityType && $hook->action === mb_strtoupper($action);
                 }
-                return $hook->entityType === $entityType && $hook->action === mb_strtoupper($action);
-            }));
-            $isSigned = empty($filtered) ? false : true;
-            if ($isSigned) {
+            );
+            $filtered  = array_values($filtered);
+            if ($filtered) {
                 continue;
             }
-            $responses[] = $this->query(static::HOOK_HREF)->post([
-                'url' => $url,
-                'action' => mb_strtoupper($action),
-                'entityType' => $entityType
-            ]);
+            $responses[] = $this->httpClient->post(
+                static::BASE_URI.static::HOOK_URI,
+                [
+                    'url' => $url,
+                    'action' => mb_strtoupper($action),
+                    'entityType' => $entityType
+                ]
+            );
         }
         return $responses;
     }
@@ -205,9 +271,10 @@ class Client
             $isSigned = empty($filtered) ? false : true;
             if ($isSigned) {
                 $hook = $filtered[0];
-                $responses[] = $this->query($hook->meta->href)->delete();
+                $responses[] = $this->httpClient->delete($hook->meta->href);
             }
         }
         return $responses;
     }
+
 }
