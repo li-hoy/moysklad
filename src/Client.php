@@ -1,9 +1,9 @@
 <?php
 
-namespace Lihoy\Moysklad\Base\Models;
+namespace Lihoy\Moysklad;
 
 use GuzzleHttp\Client as  HttpClient;
-use Lihoy\Moysklad\Base\Models\Entity;
+use Lihoy\Moysklad\Entity;
 
 class Client extends \Lihoy\Moysklad\Base
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Lihoy\Moysklad\Base\Models;
+namespace Lihoy\Moysklad;
 
 class Entity extends \Lihoy\Moysklad\Base
 {
