@@ -5,7 +5,7 @@ namespace Lihoy\Moysklad\Base\Models;
 use GuzzleHttp\Client as  HttpClient;
 use Lihoy\Moysklad\Base\Models\Entity;
 
-class Client
+class Client extends \Lihoy\Moysklad\Base
 {
     private $queryDelay, $requestOptions, $credentials;
 
