@@ -56,7 +56,7 @@ class Client extends \Lihoy\Moysklad\Base
         string $id,
         ?string $expand = null
     ) {
-        $href = self::ENTITY_HREF."/".$entityType.'/'.$id;
+        $href = static::BASE_URI.static::ENTITY_URI."/".$entityType.'/'.$id;
         return $this->getEntityByHref($href, $expand);
     }
 
@@ -67,7 +67,8 @@ class Client extends \Lihoy\Moysklad\Base
         if ($expand) {
             $href = $href.'?expand='.$expand;
         }
-        $entityData = $this->httpClient->get($href)->getBody()->getContents();
+        $response = $this->httpClient->get($href)->getBody()->getContents();
+        $entityData = json_decode($response);
         $entity = new Entity($this, $entityData);
         return $entity;
     }
@@ -85,7 +86,7 @@ class Client extends \Lihoy\Moysklad\Base
     ) {
         $queryLimit = 1000;
         $offset = 0;
-        $href_base = self::ENTITY_HREF."/".$entityType."?limit=".$queryLimit;
+        $href_base = self::ENTITY_URI."/".$entityType."?limit=".$queryLimit;
         if ($expand) {
             $href_base = $href_base.'&expand='.$expand;
         }

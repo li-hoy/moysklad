@@ -22,21 +22,21 @@ class Entity extends \Lihoy\Moysklad\Base
 
     public function __set($fieldName, $fieldValue)
     {
-        if (false === in_array($this->readonly)) {
-            throw new \Exception(
-                "Trying to assign a value to a read-only field"
-            );
-            $this->$fieldName = $fieldValue;
-        }
+        // if (in_array($fieldName, $this->readonly)) {
+        //     throw new \Exception(
+        //         "Trying to assign a value to a read-only field"
+        //     );
+        // }
+        $this->$fieldName = $fieldValue;
     }
 
     public function __get($fieldName)
     {
-        if (in_array($fieldName, $this->hidden)) {
-            throw new \Exception(
-                "Trying to get the value of a hidden field"
-            );
-        }
+        // if (in_array($fieldName, $this->hidden)) {
+        //     throw new \Exception(
+        //         "Trying to get the value of a hidden field"
+        //     );
+        // }
         if (false === isset($this->$fieldName)) {
             if (isset($this->meta->$fieldName)) {
                 return $this->meta->$fieldName;
