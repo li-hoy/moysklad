@@ -17,7 +17,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Lihoy\\MoySklad\\": "src/"
+            "Lihoy\\Moysklad\\": "src/"
         }
     }
 }
