@@ -86,7 +86,7 @@ class Client extends \Lihoy\Moysklad\Base
     ) {
         $queryLimit = 1000;
         $offset = 0;
-        $href_base = self::ENTITY_URI."/".$entityType."?limit=".$queryLimit;
+        $href_base = static::BASE_URI.static::ENTITY_URI."/".$entityType."?limit=".$queryLimit;
         if ($expand) {
             $href_base = $href_base.'&expand='.$expand;
         }
@@ -106,12 +106,12 @@ class Client extends \Lihoy\Moysklad\Base
         do {
             $href = $href_base."&offset=".$offset;
             $response = $this->httpClient->get($href)->getBody()->getContents();
-            $entityDataList = $response->rows;
+            $entityDataList = json_decode($response)->rows;
             foreach ($entityDataList as $entityData) {
                 $list[] = new Entity($this, $entityData);
             }
             $offset = $offset + $queryLimit;
-        } while (count($responseList) === $queryLimit);
+        } while (count($list) === $queryLimit);
         return $list;
     }
 
