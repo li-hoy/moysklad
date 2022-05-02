@@ -75,60 +75,53 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * Get entities list with filtering
-     * 
-     * filterList example: [['sum', '>' '100'], ['sum', '<' '200']]
-     * opaerators: ['=', '>', '<', '>=', '<=', '!=', '~', '~=', '=~']
      */
     public function getEntities(
         string $entityType,
         array $filterList = [],
         int $limit = null,
+        int $offset = null,
         string $expand = null
     ) {
-        $queryLimit = 1000;
-        if ($queryLimit > $limit) {
-            $queryLimit = $limit;
+        return $this->getCollection(
+            $entityType,
+            $filterList,
+            $limit,
+            $offset,
+            ['expand' => $expand]
+        );
+    }
+
+    /**
+     * Get entities list with filtering
+     * 
+     * groupBy values: product, variant, consignment
+     * groupBy default value: variant
+     */
+    public function getStock(
+        bool $byStore = false,
+        bool $current = false,
+        array $filterList = [],
+        int $limit = null,
+        int $offset = null,
+        ?string $groupBy = null
+    ) {
+        $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
+        if ($current) {
+            $endPoint = $endPoint.'/current';
+            $response = $this->httpClient
+                             ->get( static::BASE_URI.'/'.$endpint)
+                             ->getBody()
+                             ->getContents();
+            return \json_decode($response);
         }
-        if ($queryLimit <= 0) {
-            return [];
-        }
-        $href_base = static::BASE_URI.static::ENTITY_URI."/".$entityType."?limit=".$queryLimit;
-        if ($expand) {
-            $href_base = $href_base.'&expand='.$expand;
-        }
-        if ($filterList) {
-            $filterURI = "filter=";
-            for ($i = 0; $i < count($filterList); $i++) {
-                $filter = $filterList[$i];
-                $filterURI = $filterURI.$filter[0].$filter[1].$filter[2];
-                if ($i === (count($filterList) - 1)) {
-                    break;
-                }
-                $filterURI = $filterURI.';';
-            }
-            $href_base = $href_base."&".$filterURI;
-        }
-        $offset = 0;
-        $list = [];
-        do {
-            $href = $href_base."&offset=".$offset;
-            $response = $this->httpClient->get($href)->getBody()->getContents();
-            $entityDataList = json_decode($response)->rows;
-            if (is_null($limit)) {
-                $limit = $response->meta->size - $offset;
-            }
-            $remainder = empty($remainder)
-                ? $limit - count($entityDataList)
-                : $remainder - count($entityDataList);
-            foreach ($entityDataList as $entityData) {
-                $list[] = new Entity($this, $entityData);
-            }
-            $offset = $offset + $queryLimit;
-            if ($remainder < $queryLimit) {
-                $queryLimit = $remainder;
-            }
-        } while (count($list) < $limit && count($list) === $queryLimit);
-        return $list;
+        return $this->getCollection(
+            $endPoint,
+            $filterList,
+            $limit,
+            $offset,
+            ['groupBy' => $groupBy]
+        );
     }
 
     public function getEmployeeByUid(string $uid)
@@ -292,6 +285,65 @@ class Client extends \Lihoy\Moysklad\Base
             }
         }
         return $responses;
+    }
+
+    /**
+     * Get entities list with filtering
+     * 
+     * filterList example: [['sum', '>' '100'], ['sum', '<' '200']]
+     * opaerators: ['=', '>', '<', '>=', '<=', '!=', '~', '~=', '=~']
+     */
+    public function getCollection(
+        string $endPoint,
+        array $filterList = [],
+        int $limit = null,
+        int $offset = null,
+        array $paramList = []
+    ) {
+        $queryLimit = 1000;
+        if ($queryLimit > $limit) {
+            $queryLimit = $limit;
+        }
+        if ($queryLimit <= 0) {
+            return [];
+        }
+        $href_base = static::BASE_URI."/".$endPoint."?limit=".$queryLimit;
+        foreach ($paramList as $paramName=>$paramValue) {
+            $href_base = $href_base.'&'.$paramName.'='.$paramValue;
+        }
+        if ($filterList) {
+            $filterURI = "filter=";
+            for ($i = 0; $i < count($filterList); $i++) {
+                $filter = $filterList[$i];
+                $filterURI = $filterURI.$filter[0].$filter[1].$filter[2];
+                if ($i === (count($filterList) - 1)) {
+                    break;
+                }
+                $filterURI = $filterURI.';';
+            }
+            $href_base = $href_base."&".$filterURI;
+        }
+        $offset = $offset ? $offset : 0;
+        $list = [];
+        do {
+            $href = $href_base."&offset=".$offset;
+            $response = $this->httpClient->get($href)->getBody()->getContents();
+            $entityDataList = json_decode($response)->rows;
+            if (is_null($limit)) {
+                $limit = $response->meta->size - $offset;
+            }
+            $remainder = empty($remainder)
+                ? $limit - count($entityDataList)
+                : $remainder - count($entityDataList);
+            foreach ($entityDataList as $entityData) {
+                $list[] = new Entity($this, $entityData);
+            }
+            $offset = $offset + $queryLimit;
+            if ($remainder < $queryLimit) {
+                $queryLimit = $remainder;
+            }
+        } while (count($list) < $limit && count($list) === $queryLimit);
+        return $list;
     }
 
 }
