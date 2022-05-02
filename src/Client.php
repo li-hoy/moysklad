@@ -82,15 +82,21 @@ class Client extends \Lihoy\Moysklad\Base
     public function getEntities(
         string $entityType,
         array $filterList = [],
+        int $limit = null,
         string $expand = null
     ) {
         $queryLimit = 1000;
-        $offset = 0;
+        if ($queryLimit > $limit) {
+            $queryLimit = $limit;
+        }
+        if ($queryLimit <= 0) {
+            return [];
+        }
         $href_base = static::BASE_URI.static::ENTITY_URI."/".$entityType."?limit=".$queryLimit;
         if ($expand) {
             $href_base = $href_base.'&expand='.$expand;
         }
-        if (false === empty($filterList)) {
+        if ($filterList) {
             $filterURI = "filter=";
             for ($i = 0; $i < count($filterList); $i++) {
                 $filter = $filterList[$i];
@@ -102,16 +108,26 @@ class Client extends \Lihoy\Moysklad\Base
             }
             $href_base = $href_base."&".$filterURI;
         }
+        $offset = 0;
         $list = [];
         do {
             $href = $href_base."&offset=".$offset;
             $response = $this->httpClient->get($href)->getBody()->getContents();
             $entityDataList = json_decode($response)->rows;
+            if (is_null($limit)) {
+                $limit = $response->meta->size - $offset;
+            }
+            $remainder = empty($remainder)
+                ? $limit - count($entityDataList)
+                : $remainder - count($entityDataList);
             foreach ($entityDataList as $entityData) {
                 $list[] = new Entity($this, $entityData);
             }
             $offset = $offset + $queryLimit;
-        } while (count($list) === $queryLimit);
+            if ($remainder < $queryLimit) {
+                $queryLimit = $remainder;
+            }
+        } while (count($list) < $limit && count($list) === $queryLimit);
         return $list;
     }
 
