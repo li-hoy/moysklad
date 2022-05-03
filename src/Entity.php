@@ -2,58 +2,94 @@
 
 namespace Lihoy\Moysklad;
 
+use Lihoy\Moysklad\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Exception\BadResponseException;
+
 class Entity extends \Lihoy\Moysklad\Base
 {
     protected
-        $readonly = [
-            'id',
-            'href',
-            'meta'
-        ],
-        $hidden = ['client'];
+        $attributes = [],
+        $client = null,
+        $changed = null,
+        $readonly = [],
+        $required = ['meta'],
+        $type = null;
 
-    public function __construct($client, $entityData)
-    {
+    public function __construct(
+        Client $client,
+        $entityData = null
+    ) {
         $this->client = $client;
-        foreach ($entityData as $fieldName=>$fieldValue) {
-            $this->$fieldName = $fieldValue;
+        if ($entityData && (is_array($entityData) || is_object($entityData))) {
+            if (false === is_array($entityData) && false === is_object($entityData)) {
+                throw new \Exception ("Entity data must be array or object.");
+            }
+            foreach ($entityData as $fieldName=>$fieldValue) {
+                $this->attributes[$fieldName] = $fieldValue;
+            }
+            foreach ($this->required as $fieldName) {
+                if (false === isset($this->attributes[$fieldName])) {
+                    throw new \Exception("Missing a required field $fieldName");
+                }
+            }
+            $this->type = $this->attributes['meta']->type;
+        }
+        if (is_string($entityData)) {
+            $this->type = $entityData;
+        }
+        $this->changed = [];
+        foreach ($this as $fieldName=>$fieldValue) {
+            if (is_null($this->$fieldName)) {
+                throw new \Exception("Сonstruction not completed.");
+            }
         }
     }
 
     public function __set($fieldName, $fieldValue)
     {
-        // if (in_array($fieldName, $this->readonly)) {
-        //     throw new \Exception(
-        //         "Trying to assign a value to a read-only field"
-        //     );
-        // }
-        $this->$fieldName = $fieldValue;
+        if (isset($this->$fieldName) && is_null($this->$fieldName)) {
+            $this->$fieldName = $fieldValue;
+            return;
+        }
+        if (
+            in_array($fieldName, $this->readonly)
+            && false === is_null($this->changed)
+        ) {
+            throw new \Exception(
+                "Trying to set a value to a read-only field."
+            );
+        }
+        $this->attributes[$fieldName] = $fieldValue;
+        if (false === is_null($this->changed)) {
+            $this->changed[] = $fieldName;
+        }
     }
 
     public function __get($fieldName)
     {
-        // if (in_array($fieldName, $this->hidden)) {
-        //     throw new \Exception(
-        //         "Trying to get the value of a hidden field"
-        //     );
-        // }
-        if (false === isset($this->$fieldName)) {
-            if (isset($this->meta->$fieldName)) {
-                return $this->meta->$fieldName;
-            }
+        if (isset($this->$fieldName)) {
+            return $this->$fieldName;
+        }
+        if (isset($this->attributes[$fieldName])) {
+            return $this->attributes[$fieldName];
+        } 
+        if (isset($this->attributes['meta'])) {
             if ($fieldName === 'id') {
                 return $this->parseId();
             }
-            return $this->fieldName;
+            if (isset($this->attributes['meta']->$fieldName)) {
+                return $this->attributes['meta']->$fieldName;
+            }
         }
         throw new \Exception(
-            "Trying to get a non-existent field."
+            "Trying to get a non-existent field value."
         );
     }
 
     protected function parseId()
     {
-        $uriParts = explode('/', $this->meta->href);
+        $uriParts = explode('/', $this->attributes['meta']->href);
         return end($uriParts);
     }
 
@@ -133,7 +169,7 @@ class Entity extends \Lihoy\Moysklad\Base
                 $recurciveLinkedEntityList = [];
                 $filterList = [];
                 foreach ($linkedEntityList as $l_entity) {
-                    $filterList[] = ['id', '=', $this->getId($l_entity)];
+                    $filterList[] = ['id', '=', $this->parseId($l_entity)];
                     $limit = $limit - 1;
                     if (!$limit) {
                         break;
@@ -179,6 +215,36 @@ class Entity extends \Lihoy\Moysklad\Base
             throw new Exception("State with $fieldName = $fieldValue doesn`t exist");
         }
         return $stateList[0];
+    }
+
+    public function save()
+    {
+        $requestData = [];
+        foreach ($this->changed as $fieldName) {
+            $requestData[$fieldName] = $this->attributes[$fieldName];
+        }
+        if (empty($requestData)) {
+            return false;
+        }
+        if (isset($this->attributes['meta'])) {
+            $method = 'PUT';
+            $href = $this->href;
+        } else {
+            $method = 'POST';
+            $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
+        }
+        $request = new Request($method, $href);
+        try {
+            $response = $this->client->httpClient->send($request, ['json' => $requestData]);
+        } catch (BadResponseException $exception) {
+            $message = "";
+            $responseContent = $exception->getResponse()->getBody()->getContents();
+            $errors = \json_decode($responseContent)->errors;
+            foreach ($errors as $error) {
+                $message = $message.' '.$error->error.';';
+            }
+            throw new \Exception($message);
+        }
     }
 
 }
