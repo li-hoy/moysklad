@@ -104,7 +104,7 @@ class Client extends \Lihoy\Moysklad\Base
         return $employeeList[0];
     }
 
-    public function getAuditEvent($auditHref, $entityType, $eventType, $uid)
+    public function getAuditEvent($auditHref, $entityType, $eventType, $uid = null)
     {
         $eventType = mb_strtolower($eventType);
         $entityType = mb_strtolower($entityType);
@@ -115,7 +115,7 @@ class Client extends \Lihoy\Moysklad\Base
                 return
                     $event->eventType === $eventType
                     && $event->entityType === $entityType
-                    && $event->uid === $uid;
+                    && (is_null($uid) || $event->uid === $uid);
             }
         ));
         if (count($filteredEventList) > 1) {
