@@ -2,53 +2,27 @@
 
 namespace Lihoy\Moysklad;
 
-use GuzzleHttp\Client as  HttpClient;
+use Lihoy\Moysklad\Components\Http\Connection;
 use Lihoy\Moysklad\Entity;
 
 class Client extends \Lihoy\Moysklad\Base
 {
-    private $queryDelay, $requestOptions, $credentials;
+    protected $connection;
 
     const
         BASE_URI = "https://online.moysklad.ru/api/remap/1.2",
         ENTITY_URI = "/entity",
         HOOK_URI = "/entity/webhook",
-        METADATA_URI = "/metadata",
-        POST_DATA_FORMAT = 'json',
-        DEFAULT_REQUEST_DELAY = 0.2,
-        DEFAULT_REQUEST_TIMEOUT = 10.0;
+        METADATA_URI = "/metadata";
 
     public function __construct($login, $pass)
     {
-        $this->token = base64_encode($login.':'.$pass);
-        $this->requestOptions = [
-            'headers' => [
-                'Authorization' => "Basic $this->token",
-            ],
-            'delay' => static::DEFAULT_REQUEST_DELAY,
-            'timeout' => static::DEFAULT_REQUEST_TIMEOUT
-        ];
-        $this->httpClient = new HttpClient($this->requestOptions);
+        $this->connetction = new Connection($login, $pass);
     }
 
-    public function getToken()
+    public function getConnection()
     {
-        return $this->token;
-    }
-
-    public function getRequestOptions()
-    {
-        return $this->requestOptions;
-    }
-
-    public function setRequestOption(string $key, $value)
-    {
-        $this->requestOptions[$key] = $value;
-        if (is_null($value)) {
-            unset($this->requestOptions[$key]);
-        }
-        $this->httpClient = new HttpClient($this->requestOptions);
-        return $this;
+        return $this->connection;
     }
 
     public function getEntityById(
@@ -67,7 +41,7 @@ class Client extends \Lihoy\Moysklad\Base
         if ($expand) {
             $href = $href.'?expand='.$expand;
         }
-        $response = $this->httpClient->get($href)->getBody()->getContents();
+        $response = $this->connection->get($href);
         $entityData = json_decode($response);
         $entity = new Entity($this, $entityData);
         return $entity;
@@ -109,11 +83,8 @@ class Client extends \Lihoy\Moysklad\Base
         $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
         if ($current) {
             $endPoint = $endPoint.'/current';
-            $response = $this->httpClient
-                             ->get( static::BASE_URI.'/'.$endpint)
-                             ->getBody()
-                             ->getContents();
-            return \json_decode($response);
+            $response = $this->connection->get( static::BASE_URI.'/'.$endpint);
+            return $response;
         }
         return $this->getCollection(
             $endPoint,
@@ -137,7 +108,7 @@ class Client extends \Lihoy\Moysklad\Base
     {
         $eventType = mb_strtolower($eventType);
         $entityType = mb_strtolower($entityType);
-        $eventList = $this->httpClient->get($auditHref.'/events')->parseJson()->rows;
+        $eventList = $this->connection->get($auditHref.'/events')->rows;
         $filteredEventList = array_values(array_filter(
             $eventList,
             function($event)use($entityType, $eventType, $uid) {
@@ -204,27 +175,19 @@ class Client extends \Lihoy\Moysklad\Base
 
     public function getMetadata(string $entityType)
     {
-        return $this->httpClient
-                    ->get(
-                        static::BASE_URI.
-                        static::ENTITY_URI.
-                        "/{$entityType}".
-                        static::METADATA_URI)
-                    ->getBody()->getContents();
+        return $this->connection->get(
+            static::BASE_URI.static::ENTITY_URI."/{$entityType}".static::METADATA_URI
+        );
     }
 
     public function getWebhook(string $id)
     {
-        return $this->httpClient
-                    ->get(static::BASE_URI.static::HOOK_URI."/{$id}")
-                    ->getBody()->getContents();
+        return $this->connection->get(static::BASE_URI.static::HOOK_URI."/{$id}");
     }
 
     public function getWebhooks(array $filter = [])
     {
-        $webhookList = $this->httpClient
-                            ->get(static::BASE_URI.static::HOOK_URI)
-                            ->getBody()->getContents();
+        $webhookList = $this->connection->get(static::BASE_URI.static::HOOK_URI);
         if (empty($filter)) {
             return $webhookList;
         }
@@ -252,7 +215,7 @@ class Client extends \Lihoy\Moysklad\Base
             if ($filtered) {
                 continue;
             }
-            $responses[] = $this->httpClient->post(
+            $responses[] = $this->connection->post(
                 static::BASE_URI.static::HOOK_URI,
                 [
                     'url' => $url,
@@ -281,7 +244,7 @@ class Client extends \Lihoy\Moysklad\Base
             $isSigned = empty($filtered) ? false : true;
             if ($isSigned) {
                 $hook = $filtered[0];
-                $responses[] = $this->httpClient->delete($hook->meta->href);
+                $responses[] = $this->connection->delete($hook->meta->href);
             }
         }
         return $responses;
@@ -327,8 +290,8 @@ class Client extends \Lihoy\Moysklad\Base
         $list = [];
         do {
             $href = $href_base."&offset=".$offset;
-            $response = $this->httpClient->get($href)->getBody()->getContents();
-            $entityDataList = json_decode($response)->rows;
+            $response = $this->connection->get($href);
+            $entityDataList = $response->rows;
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
             }

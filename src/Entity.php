@@ -118,7 +118,7 @@ class Entity extends \Lihoy\Moysklad\Base
         $eventList = [];
         do {
             $href = $entity->meta->href."/audit?limit=".$queryLimit."&offest=".$offset;
-            $response = $this->httpClient->get($href)->getBody()->getContents();
+            $response = $this->client->connection->get($href);
             $rows = $response->rows;
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
@@ -233,18 +233,7 @@ class Entity extends \Lihoy\Moysklad\Base
             $method = 'POST';
             $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
         }
-        $request = new Request($method, $href);
-        try {
-            $response = $this->client->httpClient->send($request, ['json' => $requestData]);
-        } catch (BadResponseException $exception) {
-            $message = "";
-            $responseContent = $exception->getResponse()->getBody()->getContents();
-            $errors = \json_decode($responseContent)->errors;
-            foreach ($errors as $error) {
-                $message = $message.' '.$error->error.';';
-            }
-            throw new \Exception($message);
-        }
+        $response = $this->client->connection->query($method, $href, $requestData);
+        return $this;
     }
-
 }
