@@ -73,13 +73,19 @@ class Entity extends \Lihoy\Moysklad\Base
         }
         if (isset($this->attributes[$fieldName])) {
             return $this->attributes[$fieldName];
-        } 
+        }
         if (isset($this->attributes['meta'])) {
             if ($fieldName === 'id') {
                 return $this->parseId();
             }
             if (isset($this->attributes['meta']->$fieldName)) {
                 return $this->attributes['meta']->$fieldName;
+            }
+        }
+        $additionalFeldList = $this->attributes['attributes'] ?? [];
+        foreach ($additionalFeldList as $additionalFeld) {
+            if ($additionalFeld->name === $fieldName) {
+                return $additionalFeld->value;
             }
         }
         throw new \Exception(
