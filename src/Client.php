@@ -17,7 +17,7 @@ class Client extends \Lihoy\Moysklad\Base
 
     public function __construct($login, $pass)
     {
-        $this->connetction = new Connection($login, $pass);
+        $this->connection = new Connection($login, $pass);
     }
 
     public function getConnection()
@@ -41,10 +41,8 @@ class Client extends \Lihoy\Moysklad\Base
         if ($expand) {
             $href = $href.'?expand='.$expand;
         }
-        $response = $this->connection->get($href);
-        $entityData = json_decode($response);
-        $entity = new Entity($this, $entityData);
-        return $entity;
+        $entityData = $this->connection->get($href);
+        return new Entity($this, $entityData);
     }
 
     /**
@@ -83,8 +81,7 @@ class Client extends \Lihoy\Moysklad\Base
         $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
         if ($current) {
             $endPoint = $endPoint.'/current';
-            $response = $this->connection->get( static::BASE_URI.'/'.$endpint);
-            return $response;
+            return $this->connection->get( static::BASE_URI.'/'.$endpint);
         }
         return $this->getCollection(
             $endPoint,
@@ -220,7 +217,7 @@ class Client extends \Lihoy\Moysklad\Base
 
     public function getWebhooks(array $filter = [])
     {
-        $webhookList = $this->connection->get(static::BASE_URI.static::HOOK_URI);
+        $webhookList = $this->connection->get(static::BASE_URI.static::HOOK_URI)->rows;
         if (empty($filter)) {
             return $webhookList;
         }
@@ -290,8 +287,7 @@ class Client extends \Lihoy\Moysklad\Base
         $list = [];
         do {
             $href = $href_base."&offset=".$offset;
-            $response = $this->connection->get($href);
-            $entityDataList = $response->rows;
+            $entityDataList = $this->connection->get($href)->rows;
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
             }
