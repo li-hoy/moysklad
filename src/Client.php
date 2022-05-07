@@ -56,7 +56,7 @@ class Client extends \Lihoy\Moysklad\Base
         string $expand = null
     ) {
         return $this->getCollection(
-            $entityType,
+            'entity/'.$entityType,
             $filterList,
             $limit,
             $offset,
@@ -261,7 +261,7 @@ class Client extends \Lihoy\Moysklad\Base
         array $paramList = []
     ) {
         $queryLimit = 1000;
-        if ($queryLimit > $limit) {
+        if ($limit && $queryLimit > $limit) {
             $queryLimit = $limit;
         }
         if ($queryLimit <= 0) {
@@ -269,6 +269,9 @@ class Client extends \Lihoy\Moysklad\Base
         }
         $href_base = static::BASE_URI."/".$endPoint."?limit=".$queryLimit;
         foreach ($paramList as $paramName=>$paramValue) {
+            if (is_null($paramValue)) {
+                continue;
+            }
             $href_base = $href_base.'&'.$paramName.'='.$paramValue;
         }
         if ($filterList) {
@@ -287,7 +290,8 @@ class Client extends \Lihoy\Moysklad\Base
         $list = [];
         do {
             $href = $href_base."&offset=".$offset;
-            $entityDataList = $this->connection->get($href)->rows;
+            $response = $this->connection->get($href);
+            $entityDataList = $response->rows;
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
             }
