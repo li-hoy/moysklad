@@ -35,4 +35,10 @@ class Query extends \Lihoy\Moysklad\Base
             throw new \Exception($message);
         }
     }
+
+    protected function delay()
+    {
+        $delayTime = intval($this->client->delay * 1000000);
+        \usleep($delayTime);
+    }
 }

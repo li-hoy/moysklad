@@ -9,7 +9,7 @@ use Lihoy\Moysklad\Components\Http\Query;
 class Connection extends \Lihoy\Moysklad\Base
 {
     const
-        DELAY = 0.5,
+        DELAY = 500000,
         TIMEOUT = 60.0,
         POST_DATA_TYPE = 'json';
 
@@ -84,6 +84,12 @@ class Connection extends \Lihoy\Moysklad\Base
         }
         $this->httpClient = new HttpClient($this->requestOptions);
         return $this;
+    }
+
+    public function setDelay(float $delay)
+    {
+        $delay = intval($delay * 1000000);
+        $this->setRequestOption('delay', $delay);
     }
 
 }

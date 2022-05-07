@@ -180,20 +180,6 @@ class Client extends \Lihoy\Moysklad\Base
         );
     }
 
-    public function getWebhook(string $id)
-    {
-        return $this->connection->get(static::BASE_URI.static::HOOK_URI."/{$id}");
-    }
-
-    public function getWebhooks(array $filter = [])
-    {
-        $webhookList = $this->connection->get(static::BASE_URI.static::HOOK_URI);
-        if (empty($filter)) {
-            return $webhookList;
-        }
-        return $this->filter($webhookList, $filter);
-    }
-
     public function addWebhooks($subscriptionList, string $url)
     {
         if (is_string($subscriptionList)) {
@@ -225,6 +211,20 @@ class Client extends \Lihoy\Moysklad\Base
             );
         }
         return $responses;
+    }
+
+    public function getWebhook(string $id)
+    {
+        return $this->connection->get(static::BASE_URI.static::HOOK_URI."/{$id}");
+    }
+
+    public function getWebhooks(array $filter = [])
+    {
+        $webhookList = $this->connection->get(static::BASE_URI.static::HOOK_URI);
+        if (empty($filter)) {
+            return $webhookList;
+        }
+        return $this->filter($webhookList, $filter);
     }
 
     public function deleteWebhooks($subscriptionList, string $url)
@@ -308,5 +308,4 @@ class Client extends \Lihoy\Moysklad\Base
         } while (count($list) < $limit && count($list) === $queryLimit);
         return $list;
     }
-
 }
