@@ -85,7 +85,7 @@ class Entity extends \Lihoy\Moysklad\Base
         $additionalFeldList = $this->attributes['attributes'] ?? [];
         foreach ($additionalFeldList as $additionalFeld) {
             if ($additionalFeld->name === $fieldName) {
-                return $additionalFeld->value;
+                return $additionalFeld;
             }
         }
         throw new \Exception(
