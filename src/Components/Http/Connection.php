@@ -53,7 +53,8 @@ class Connection extends \Lihoy\Moysklad\Base
 
     public function query(string $method, string $url, array $data = [])
     {
-        $response = Query($this->httpClient, $method, $url)->send($data)->getBody()->getContents();
+        $query = new Query($this->httpClient, $method, $url);
+        $response = $query->send($data)->getBody()->getContents();
         return \json_decode($response);
     }
 
