@@ -89,7 +89,7 @@ class Connection extends \Lihoy\Moysklad\Base
 
     public function setDelay(float $delay)
     {
-        $delay = intval($delay * 1000000);
+        $delay = intval($delay * 1000);
         $this->setRequestOption('delay', $delay);
     }
 
