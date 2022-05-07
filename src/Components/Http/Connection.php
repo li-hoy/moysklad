@@ -10,7 +10,7 @@ class Connection extends \Lihoy\Moysklad\Base
 {
     const
         DELAY = 500,
-        TIMEOUT = 60.0,
+        TIMEOUT = 30.0,
         POST_DATA_TYPE = 'json';
 
     protected
