@@ -9,7 +9,7 @@ use Lihoy\Moysklad\Components\Http\Query;
 class Connection extends \Lihoy\Moysklad\Base
 {
     const
-        DELAY = 500000,
+        DELAY = 500,
         TIMEOUT = 60.0,
         POST_DATA_TYPE = 'json';
 
