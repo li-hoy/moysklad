@@ -89,7 +89,7 @@ class Entity extends \Lihoy\Moysklad\Base
             }
         }
         throw new \Exception(
-            "Trying to get a non-existent field value."
+            "Trying to get a non-existent field '{$fieldName}' value."
         );
     }
 
