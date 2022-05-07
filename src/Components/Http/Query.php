@@ -24,7 +24,7 @@ class Query extends \Lihoy\Moysklad\Base
     public function send(array $requestData = [])
     {
         try {
-            $response = $this->client->send($request, ['json' => $requestData]);
+            return $this->client->send($this->request, ['json' => $requestData]);
         } catch (BadResponseException $exception) {
             $message = "";
             $responseContent = $exception->getResponse()->getBody()->getContents();
