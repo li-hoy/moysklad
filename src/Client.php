@@ -81,7 +81,7 @@ class Client extends \Lihoy\Moysklad\Base
         $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
         if ($current) {
             $endPoint = $endPoint.'/current';
-            return $this->connection->get( static::BASE_URI.'/'.$endpint);
+            return $this->connection->get( static::BASE_URI.'/'.$endPoint);
         }
         return $this->getCollection(
             $endPoint,
