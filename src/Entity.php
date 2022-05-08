@@ -39,11 +39,11 @@ class Entity extends \Lihoy\Moysklad\Base
             $this->type = $entityData;
         }
         $this->changed = [];
-        foreach ($this as $fieldName=>$fieldValue) {
-            if (is_null($this->$fieldName)) {
-                throw new \Exception("Сonstruction not completed.");
-            }
-        }
+        // foreach ($this as $fieldName=>$fieldValue) {
+        //     if (is_null($this->$fieldName)) {
+        //         throw new \Exception("Сonstruction not completed.");
+        //     }
+        // }
     }
 
     public function __set($fieldName, $fieldValue)
