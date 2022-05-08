@@ -17,8 +17,8 @@ class Entity extends \Lihoy\Moysklad\Base
         $type = null;
 
     public function __construct(
-        Client $client,
-        $entityData = null
+        $entityData = null,
+        Client $client = null
     ) {
         $this->client = $client;
         if ($entityData && (is_array($entityData) || is_object($entityData))) {

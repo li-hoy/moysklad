@@ -299,7 +299,7 @@ class Client extends \Lihoy\Moysklad\Base
                 ? $limit - count($entityDataList)
                 : $remainder - count($entityDataList);
             foreach ($entityDataList as $entityData) {
-                $list[] = new Entity($this, $entityData);
+                $list[] = new Entity($entityData, $this);
             }
             $offset = $offset + $queryLimit;
             if ($remainder < $queryLimit) {
