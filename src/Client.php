@@ -65,24 +65,19 @@ class Client extends \Lihoy\Moysklad\Base
     }
 
     /**
-     * Get entities list with filtering
+     * Get stock
      * 
      * groupBy values: product, variant, consignment
      * groupBy default value: variant
      */
     public function getStock(
         bool $byStore = false,
-        bool $current = false,
-        array $filterList = [],
-        int $limit = null,
-        int $offset = null,
-        ?string $groupBy = null
+        ?int $limit = null,
+        ?int $offset = null,
+        ?string $groupBy = null,
+        array $filterList = []
     ) {
         $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
-        if ($current) {
-            $endPoint = $endPoint.'/current';
-            return $this->connection->get( static::BASE_URI.'/'.$endPoint);
-        }
         return $this->getCollection(
             $endPoint,
             $filterList,
@@ -90,6 +85,39 @@ class Client extends \Lihoy\Moysklad\Base
             $offset,
             ['groupBy' => $groupBy]
         );
+    }
+
+    public function getCurrentStock(
+        bool $byStore = false,
+        ?string $stockType = null,
+        array $filterList = [],
+        bool $zeroLines = false
+    ) {
+        if (\is_null($stockType)) {
+            $stockType = 'stock';
+        }
+        if (false === \in_array($stockType, ['stock', 'freeStock', 'quantity'])) {
+            throw new \Exception("Wrong stockType value $stockType.");
+        }
+        $endPoint = 'report/stock/'.($byStore ? 'bystore' : 'all');
+        $endPoint = $endPoint.'/current';
+        $endPoint = $endPoint."?stockType={$stockType}";
+        if ($zeroLines) {
+            $endPoint = $endPoint.'&include=zeroLines';
+        }
+        if ($filterList) {
+            $filterURI = "filter=";
+            for ($i = 0; $i < count($filterList); $i++) {
+                $filter = $filterList[$i];
+                $filterURI = $filterURI.$filter[0].$filter[1].$filter[2];
+                if ($i === (count($filterList) - 1)) {
+                    break;
+                }
+                $filterURI = $filterURI.';';
+            }
+            $endPoint = $endPoint."&".$filterURI;
+        }
+        return $this->connection->get( static::BASE_URI.'/'.$endPoint);
     }
 
     public function getEmployeeByUid(string $uid)
