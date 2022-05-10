@@ -90,8 +90,8 @@ class Client extends \Lihoy\Moysklad\Base
     public function getCurrentStock(
         bool $byStore = false,
         ?string $stockType = null,
-        array $filterList = [],
-        bool $zeroLines = false
+        bool $zeroLines = false,
+        array $filterList = []
     ) {
         if (\is_null($stockType)) {
             $stockType = 'stock';
