@@ -336,4 +336,23 @@ class Client extends \Lihoy\Moysklad\Base
         } while (count($list) < $limit && count($list) === $queryLimit);
         return $list;
     }
+
+    public function createLink(
+        string $type,
+        string $id,
+        bool $metadata = false)
+    {
+        $link = (object) [
+            'meta' => (object) [
+                'href' => static::BASE_URI . static::ENTITY_URI . "/{$type}/$id",
+                'type' => $type,
+                'mediaType' => "application/json"
+            ]
+        ];
+        if ($metadata === true) {
+            $link->meta->metadataHref =
+                static::BASE_URI . static::ENTITY_URI . "/{$type}/metadata";
+        }
+        return $link;
+    }
 }
