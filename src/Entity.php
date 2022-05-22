@@ -240,7 +240,6 @@ class Entity extends \Lihoy\Moysklad\Base
             $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
         }
         $response = $this->client->connection->query($method, $href, $requestData);
-        $this = new static($response);
-        return $this;
+        return new static($response);
     }
 }
