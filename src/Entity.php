@@ -93,6 +93,24 @@ class Entity extends \Lihoy\Moysklad\Base
         );
     }
 
+    public function af(
+        string $name,
+        $value = null
+    ) {
+        foreach ($this->attributes['attributes'] as &$additionalFeld) {
+            if ($additionalFeld->name === $name) {
+                if (false === is_null($value)) {
+                    $additionalFeld->value = $value;
+                    return true;
+                }
+                return new static($additionalFeld);
+            }
+        }
+        throw new \Exception(
+            "Attempt to contact non-existent additional field '{$name}' value."
+        );
+    }
+
     protected function parseId()
     {
         $uriParts = explode('/', $this->attributes['meta']->href);
@@ -144,14 +162,17 @@ class Entity extends \Lihoy\Moysklad\Base
     }
 
     public function getLinkedEntities(
-        object $entity,
         string $searchType,
         ?int $recursive = null,
         int $limit = 10,
-        $expand = null
+        $expand = null,
+        $entity = null
     ) {
+        if (is_null($entity)) {
+            $entity = $this;
+        }
         $resultLinkedEntityList = [];
-        foreach($entity as $linkedEnitiesType=>$linkedEntityList) {
+        foreach($entity->attributes as $linkedEnitiesType=>$linkedEntityList) {
             if (in_array($linkedEnitiesType, ['attributes', 'positions'])) {
                 continue;
             }
@@ -171,7 +192,7 @@ class Entity extends \Lihoy\Moysklad\Base
                     $linkedEntityList
                 );
             }
-            if ($recursive) {
+            if (false === is_null($recursive) && $recursive > 0) {
                 $recurciveLinkedEntityList = [];
                 $filterList = [];
                 foreach ($linkedEntityList as $l_entity) {
@@ -187,7 +208,7 @@ class Entity extends \Lihoy\Moysklad\Base
                         $recurciveLinkedEntityList,
                         call_user_func_array(
                             [$this, __FUNCTION__],
-                            [$linkedEntity, $searchType, $recursive - 1]
+                            [$searchType, $recursive - 1, $limit, $expand, $linkedEntity]
                         )
                     );
                 }
@@ -240,7 +261,6 @@ class Entity extends \Lihoy\Moysklad\Base
             $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
         }
         $response = $this->client->connection->query($method, $href, $requestData);
-        
         return new static($response);
     }
 }
