@@ -97,7 +97,10 @@ class Entity extends \Lihoy\Moysklad\Base
         string $name,
         $value = null
     ) {
-        foreach ($this->attributes['attributes'] as &$additionalFeld) {
+        $additionalFeldList = isset($this->attributes['attributes'])
+            ? $this->attributes['attributes']
+            : [];
+        foreach ($additionalFeldList as &$additionalFeld) {
             if ($additionalFeld->name === $name) {
                 if (false === is_null($value)) {
                     $additionalFeld->value = $value;
