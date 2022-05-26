@@ -22,9 +22,6 @@ class Entity extends \Lihoy\Moysklad\Base
     ) {
         $this->client = $client;
         if ($entityData && (is_array($entityData) || is_object($entityData))) {
-            if (false === is_array($entityData) && false === is_object($entityData)) {
-                throw new \Exception ("Entity data must be array or object.");
-            }
             foreach ($entityData as $fieldName=>$fieldValue) {
                 $this->attributes[$fieldName] = $fieldValue;
             }
@@ -205,7 +202,7 @@ class Entity extends \Lihoy\Moysklad\Base
                         break;
                     }
                 }
-                $linkedEntityList = $this->getEntities($entityType, $filterList, $expand);
+                $linkedEntityList = $this->client->getEntities($entityType, $filterList, $expand);
                 foreach ($linkedEntityList as $linkedEntity) {
                     $recurciveLinkedEntityList = array_merge(
                         $recurciveLinkedEntityList,
@@ -242,7 +239,7 @@ class Entity extends \Lihoy\Moysklad\Base
     ) {
         $stateList = $this->getStates($entityType, [[$fieldName, '=', $fieldValue]]);
         if (empty($stateList)) {
-            throw new Exception("State with $fieldName = $fieldValue doesn`t exist");
+            throw new \Exception("State with $fieldName = $fieldValue doesn`t exist");
         }
         return $stateList[0];
     }
@@ -263,7 +260,7 @@ class Entity extends \Lihoy\Moysklad\Base
             $method = 'POST';
             $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
         }
-        $response = $this->client->connection->query($method, $href, $requestData);
+        $response = $this->client->getConnection()->query($method, $href, $requestData);
         return new static($response);
     }
 }

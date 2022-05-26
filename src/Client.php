@@ -42,7 +42,7 @@ class Client extends \Lihoy\Moysklad\Base
             $href = $href.'?expand='.$expand;
         }
         $entityData = $this->connection->get($href);
-        return new Entity($this, $entityData);
+        return new Entity($entityData, $this);
     }
 
     /**
@@ -124,7 +124,7 @@ class Client extends \Lihoy\Moysklad\Base
     {
         $employeeList = $this->getEntities('employee', [['uid', '=', $uid]]);
         if (empty($employeeList)) {
-            throw new Exception("Employee with $uid doesn`t exist.");
+            throw new \Exception("Employee with $uid doesn`t exist.");
         }
         return $employeeList[0];
     }
