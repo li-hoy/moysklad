@@ -7,7 +7,9 @@ use Lihoy\Moysklad\Entity;
 
 class Client extends \Lihoy\Moysklad\Base
 {
-    protected $connection;
+    protected
+        $connection = null,
+        $metadata = null;
 
     const
         BASE_URI = "https://online.moysklad.ru/api/remap/1.2",
@@ -18,6 +20,15 @@ class Client extends \Lihoy\Moysklad\Base
     public function __construct($login, $pass)
     {
         $this->connection = new Connection($login, $pass);
+    }
+
+    /**
+     * @param mixed entityData
+     */
+    public function createEntity(
+        $entityType
+    ) {
+        return new Entity($entityType, $this);
     }
 
     public function getConnection()
@@ -62,6 +73,29 @@ class Client extends \Lihoy\Moysklad\Base
             $offset,
             ['expand' => $expand]
         );
+    }
+
+    public function getEntitiesByHref(
+        array $hrefList,
+        ?string $expand = null
+    ) {
+        $entityList = [];
+        foreach ($hrefList as $href) {
+            $entityList[] = $this->getEntityByHref($href, $expand);
+        }
+        return $entityList;
+    }
+
+    public function getEntitiesById(
+        string $entityType,
+        array $idList,
+        ?string $expand = null
+    ) {
+        $entityList = [];
+        foreach ($idList as $id) {
+            $entityList[] = $this->getEntityByHref($entityType, $id, $expand);
+        }
+        return $entityList;
     }
 
     /**
@@ -198,11 +232,26 @@ class Client extends \Lihoy\Moysklad\Base
         return array_values($list);
     }
 
-    public function getMetadata(string $entityType)
-    {
-        return $this->connection->get(
-            static::BASE_URI.static::ENTITY_URI."/{$entityType}".static::METADATA_URI
-        );
+    public function getMetadata(
+        ?string $entityType = null
+    ) {
+        if (is_null($this->metadata)) {
+            $this->metadata = array_map(
+                function ($entityMetadata) {
+                    return new Entity($entityMetadata);
+                },
+                (array) $this->connection->get(
+                    static::BASE_URI.static::ENTITY_URI.static::METADATA_URI
+                )
+            );
+        }
+        if (is_null($entityType)) {
+            return $this->metadata;
+        }
+        if (false === isset($this->metadata[$entityType])) {
+            throw new \Exception("No {$entityType} metadata");
+        }
+        return $this->metadata[$entityType];
     }
 
     public function addWebhooks($subscriptionList, string $url)
