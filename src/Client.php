@@ -355,7 +355,7 @@ class Client extends \Lihoy\Moysklad\Base
             $filterURI = "filter=";
             for ($i = 0; $i < count($filterList); $i++) {
                 $filter = $filterList[$i];
-                $filterURI = $filterURI.$filter[0].$filter[1].$filter[2];
+                $filterURI = $filterURI . $filter[0] . $filter[1] . $filter[2];
                 if ($i === (count($filterList) - 1)) {
                     break;
                 }

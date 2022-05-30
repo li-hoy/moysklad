@@ -9,8 +9,8 @@ use GuzzleHttp\Exception\BadResponseException;
 class Entity extends \Lihoy\Moysklad\Base
 {
     protected
-        $additional_felds = [],
-        $attributes = [],
+        $additional_fields = [],
+        $data = [],
         $client = null,
         $changed = null,
         $metadata = null,
@@ -29,9 +29,9 @@ class Entity extends \Lihoy\Moysklad\Base
                 throw new \Exception("'meta' field is required");
             }
             foreach ($entityData as $fieldName=>$fieldValue) {
-                $this->attributes[$fieldName] = $this->updateField($fieldValue);
+                $this->data[$fieldName] = $this->updateField($fieldValue);
             }
-            $this->type = $this->attributes['meta']->type ?? null;
+            $this->type = $this->data['meta']->type ?? null;
         }
         if (is_string($entityData)) {
             $this->type = $entityData;
@@ -52,27 +52,29 @@ class Entity extends \Lihoy\Moysklad\Base
         if (false === is_null($this->changed)) {
             $this->changed[] = $fieldName;
         }
-        $this->attributes[$fieldName] = $this->updateField($fieldValue);
+        $this->data[$fieldName] = $this->updateField($fieldValue);
     }
 
     public function __get($fieldName)
     {
-        if (isset($this->attributes[$fieldName])) {
-            return $this->attributes[$fieldName];
+        if (isset($this->data[$fieldName])) {
+            return $this->data[$fieldName];
         }
         if ($fieldName === 'id') {
             return $this->parseId();
         }
-        $additionalFeldList = [];
+        $additionalFieldList = [];
         if (
-            isset($this->attributes['attributes'])
-            && is_array($this->attributes['attributes'])
+            isset($this->data['attributes'])
+            && is_array($this->data['attributes'])
         ) {
-            $additionalFeldList = $this->attributes['attributes'];
+            $additionalFieldList = $this->data['attributes'];
         }
-        foreach ($additionalFeldList as $additionalFeld) {
-            if ($additionalFeld->name === $fieldName) {
-                return $additionalFeld;
+        foreach ($additionalFieldList as $additionalField) {
+            if (false === isset($additionalField->name)) {
+            }
+            if ($additionalField->name === $fieldName) {
+                return $additionalField;
             }
         }
         throw new \Exception(
@@ -82,13 +84,13 @@ class Entity extends \Lihoy\Moysklad\Base
     
     public function __isset($name)
     {
-        return isset($this->attributes[$name]);
+        return isset($this->data[$name]);
     }
 
     protected function updateData(object $data)
     {
         foreach ($data as $fieldName=>$fieldValue) {
-            $this->attributes[$fieldName] = $this->updateField($fieldValue);
+            $this->data[$fieldName] = $this->updateField($fieldValue);
         }
         return true;
     }
@@ -120,40 +122,57 @@ class Entity extends \Lihoy\Moysklad\Base
         ?string $name = null,
         $value = null
     ) {
-        // get
-        if (is_null($value)) {
-            $additionalFeldList = isset($this->attributes['attributes'])
-                ? $this->attributes['attributes']
-                : [];
-            // get all
-            if (is_null($name)) {
-                return $additionalFeldList;
-            }
-            foreach ($additionalFeldList as &$additionalFeld) {
-                if ($additionalFeld->name === $name) {
-                    if (false === is_null($value)) {
-                        $additionalFeld->value = $value;
-                        return true;
-                    }
-                    return new static($additionalFeld);
+        $additionalFieldList = isset($this->data['attributes'])
+            ? $this->data['attributes']
+            : [];
+        // get all
+        if (is_null($name)) {
+            return $additionalFieldList;
+        }
+        // get or update
+        foreach ($additionalFieldList as &$additionalField) {
+            if ($additionalField->name === $name) {
+                if (false === is_null($value)) {
+                    $additionalField->value = $value;
+                    return true;
                 }
+                return $additionalField;
             }
+        }
+        // set
+        $additionalFieldList = $this->getMetaAdditionalFields();
+        if (is_null($value)) {
             throw new \Exception(
-                "Attempt to contact non-existent additional field '{$name}' value."
+                "Trying to get non-existent additional field '{$name}' value."
             );
         }
-
-        // set
+        foreach ($additionalFieldList as $additionalField) {
+            if ($additionalField->name === $name) {
+                $additionalField->value = $value;
+                if (false === isset($this->data['attributes'])) {
+                    $this->data['attributes'] = [];
+                }
+                $this->data['attributes'][] = $additionalField;
+                if (false === in_array('attributes', $this->changed)) {
+                    $this->changed[] = 'attributes';
+                }
+                return $additionalField;
+            }
+        }
+        throw new \Exception(
+            "Trying to set non-existent additional field '{$name}' value."
+        );
     }
 
-    public function getAdditionalFelds()
+    public function getMetaAdditionalFields()
     {
-        if (empty($this->additional_felds)) {
-            $this->additional_felds = $this->client->getEntitiesByHref(
-                $this->getMetadata()->attributes->href
+        if (empty($this->additional_fields)) {
+            $this->additional_fields = $this->client->getEntities(
+                "{$this->type}/metadata/attributes"
+                // $this->getMetadata()->attributes->meta->href
             );
         }
-        return $this->additional_felds;
+        return $this->additional_fields;
     }
 
     public function getMetadata() {
@@ -165,7 +184,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     protected function parseId()
     {
-        $uriParts = explode('/', $this->attributes['meta']->href);
+        $uriParts = explode('/', $this->data['meta']->href);
         return end($uriParts);
     }
 
@@ -173,8 +192,8 @@ class Entity extends \Lihoy\Moysklad\Base
     {
         $out = (object) [];
         foreach ($fieldNameList as $fieldName) {
-            if (isset($this->attributes[$fieldName])) {
-                $out->$fieldName = $this->attributes[$fieldName];
+            if (isset($this->data[$fieldName])) {
+                $out->$fieldName = $this->data[$fieldName];
             }
         }
         return $out;
@@ -301,20 +320,20 @@ class Entity extends \Lihoy\Moysklad\Base
         $requestData = [];
         foreach ($this->required as $fieldName) {
             $requestData[$fieldName] =
-                $this->getFieldData($this->attributes[$fieldName]);
+                $this->getFieldData($this->data[$fieldName]);
         }
         foreach ($this->changed as $fieldName) {
             if (in_array($fieldName, $this->required)) {
                 continue;
             }
             $requestData[$fieldName] =
-                $this->getFieldData($this->attributes[$fieldName]);
+                $this->getFieldData($this->data[$fieldName]);
         }
         if (empty($requestData)) {
             return false;
         }
-        if (isset($this->attributes['meta'])) {
-            $requestData['meta'] = $this->attributes['meta'];
+        if (isset($this->data['meta'])) {
+            $requestData['meta'] = $this->data['meta'];
             $method = 'PUT';
             $href = $this->href;
         } else {
@@ -329,7 +348,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     protected function getData()
     {
-        return (object) $this->attributes;
+        return (object) $this->data;
     }
 
     protected function getFieldData($field)
