@@ -294,6 +294,12 @@ class Entity extends \Lihoy\Moysklad\Base
         return $resultLinkedEntityList;
     }
 
+    public function setState(
+        string $fieldValue
+    ) {
+        $this->data['state'] = $this->getState($fieldValue, 'name');
+    }
+
     public function getStates(
         array $filter = []
     ) {
@@ -338,8 +344,9 @@ class Entity extends \Lihoy\Moysklad\Base
             $href = $this->href;
         } else {
             $method = 'POST';
-            $href = Client::BASE_URI.Client::ENTITY_URI.'/'.$this->type;
+            $href = Client::BASE_URI . Client::ENTITY_URI . '/'.$this->type;
         }
+        file_put_contents('/home/f5/web/zakaz.mostabak.su/public_html/query.log', json_encode($requestData));
         $response = $this->client->getConnection()->query($method, $href, $requestData);
         $this->updateData($response);
         $this->changed = [];

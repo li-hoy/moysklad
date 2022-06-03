@@ -51,11 +51,16 @@ class Connection extends \Lihoy\Moysklad\Base
         return $this->query('DELETE', $url, $data);
     }
 
-    public function query(string $method, string $url, array $data = [])
+    public function query(string $method, string $url, array $data = [], $json = true)
     {
         $query = new Query($this->httpClient, $method, $url);
-        $response = $query->send($data)->getBody()->getContents();
-        return \json_decode($response);
+        $response = $query->send($data);
+        $body = $response->getBody();
+        $content = $body->getContents();
+        if (false === $json) {
+            return $response;
+        }
+        return \json_decode($content);
     }
 
     public function getToken()
