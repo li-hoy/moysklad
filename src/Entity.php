@@ -338,13 +338,12 @@ class Entity extends \Lihoy\Moysklad\Base
         if (empty($requestData)) {
             return false;
         }
+        $method = 'POST';
+        $href = Client::BASE_URI . Client::ENTITY_URI . '/'.$this->type;
         if (isset($this->data['meta'])) {
             $requestData['meta'] = $this->data['meta'];
             $method = 'PUT';
             $href = $this->meta->href;
-        } else {
-            $method = 'POST';
-            $href = Client::BASE_URI . Client::ENTITY_URI . '/'.$this->type;
         }
         $response = $this->client->getConnection()->query($method, $href, $requestData);
         $this->updateData($response);
