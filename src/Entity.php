@@ -341,12 +341,11 @@ class Entity extends \Lihoy\Moysklad\Base
         if (isset($this->data['meta'])) {
             $requestData['meta'] = $this->data['meta'];
             $method = 'PUT';
-            $href = $this->href;
+            $href = $this->meta->href;
         } else {
             $method = 'POST';
             $href = Client::BASE_URI . Client::ENTITY_URI . '/'.$this->type;
         }
-        file_put_contents('/home/f5/web/zakaz.mostabak.su/public_html/query.log', json_encode($requestData));
         $response = $this->client->getConnection()->query($method, $href, $requestData);
         $this->updateData($response);
         $this->changed = [];
