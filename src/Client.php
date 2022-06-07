@@ -64,14 +64,14 @@ class Client extends \Lihoy\Moysklad\Base
         array $filterList = [],
         int $limit = null,
         int $offset = null,
-        string $expand = null
+        array $paramList = []
     ) {
         return $this->getCollection(
             'entity/'.$entityType,
             $filterList,
             $limit,
             $offset,
-            ['expand' => $expand]
+            $paramList
         );
     }
 
