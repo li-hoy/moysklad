@@ -140,12 +140,12 @@ class Entity extends \Lihoy\Moysklad\Base
             }
         }
         // set
-        $additionalFieldList = $this->getMetaAdditionalFields();
         if (is_null($value)) {
             throw new \Exception(
                 "Trying to get non-existent additional field '{$name}' value."
             );
         }
+        $additionalFieldList = $this->getMetaAdditionalFields();
         foreach ($additionalFieldList as $additionalField) {
             if ($additionalField->name === $name) {
                 $additionalField->value = $value;
