@@ -57,7 +57,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     public function __get($fieldName)
     {
-        if (isset($this->data[$fieldName])) {
+        if (array_key_exists($this->data[$fieldName])) {
             return $this->data[$fieldName];
         }
         if ($fieldName === 'id') {
@@ -112,7 +112,7 @@ class Entity extends \Lihoy\Moysklad\Base
                 isset($field->meta)
                 && false === is_a($field, static::class)
             ) {
-                $field = new static($field);
+                $field = new static($field, $this->client);
             }
         }
         return $field;
@@ -130,38 +130,41 @@ class Entity extends \Lihoy\Moysklad\Base
             return $additionalFieldList;
         }
         // get or update
-        foreach ($additionalFieldList as &$additionalField) {
-            if ($additionalField->name === $name) {
+        foreach ($additionalFieldList as &$addField) {
+            if ($addField->name === $name) {
                 if (false === is_null($value)) {
-                    $additionalField->value = $value;
+                    $addField->value = $value;
                     return true;
                 }
-                return $additionalField;
+                return $addField;
             }
         }
-        // set
-        if (is_null($value)) {
+        $metaAdditionalFieldList = $this->getMetaAdditionalFields();
+        $additionalField = null;
+        foreach ($metaAdditionalFieldList as $addField) {
+            if ($addField->name === $name) {
+                $additionalField = $addField;
+            }
+        }
+        if (is_null($additionalField)) {
             throw new \Exception(
                 "Trying to get non-existent additional field '{$name}' value."
             );
         }
-        $additionalFieldList = $this->getMetaAdditionalFields();
-        foreach ($additionalFieldList as $additionalField) {
-            if ($additionalField->name === $name) {
-                $additionalField->value = $value;
-                if (false === isset($this->data['attributes'])) {
-                    $this->data['attributes'] = [];
-                }
-                $this->data['attributes'][] = $additionalField;
-                if (false === in_array('attributes', $this->changed)) {
-                    $this->changed[] = 'attributes';
-                }
-                return $additionalField;
-            }
+        $additionalField->value = null;
+        if (is_null($value)) {
+            return $additionalField;
         }
-        throw new \Exception(
-            "Trying to set non-existent additional field '{$name}' value."
-        );
+        // set
+        $additionalField->value = $value;
+        if (false === isset($this->data['attributes'])) {
+            $this->data['attributes'] = [];
+        }
+        $this->data['attributes'][] = $additionalField;
+        if (false === in_array('attributes', $this->changed)) {
+            $this->changed[] = 'attributes';
+        }
+        return $additionalField;
     }
 
     public function getMetaAdditionalFields()
@@ -169,7 +172,6 @@ class Entity extends \Lihoy\Moysklad\Base
         if (empty($this->additional_fields)) {
             $this->additional_fields = $this->client->getEntities(
                 "{$this->type}/metadata/attributes"
-                // $this->getMetadata()->attributes->meta->href
             );
         }
         return $this->additional_fields;
