@@ -89,6 +89,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     protected function updateData(object $data)
     {
+        $this->data = [];
         foreach ($data as $fieldName=>$fieldValue) {
             $this->data[$fieldName] = $this->updateField($fieldValue);
         }
