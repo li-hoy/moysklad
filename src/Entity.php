@@ -57,7 +57,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     public function __get($fieldName)
     {
-        if (array_key_exists($this->data[$fieldName])) {
+        if (array_key_exists($fieldName, $this->data)) {
             return $this->data[$fieldName];
         }
         if ($fieldName === 'id') {
