@@ -135,6 +135,9 @@ class Entity extends \Lihoy\Moysklad\Base
             if ($addField->name === $name) {
                 if (false === is_null($value)) {
                     $addField->value = $value;
+                    if (false === in_array('attributes', $this->changed)) {
+                        $this->changed[] = 'attributes';
+                    }
                     return true;
                 }
                 return $addField;
