@@ -301,9 +301,10 @@ class Entity extends \Lihoy\Moysklad\Base
     }
 
     public function setState(
-        string $fieldValue
+        string $needle,
+        string $by = 'name'
     ) {
-        $this->data['state'] = $this->getState($fieldValue, 'name');
+        $this->__set('state', $this->getState($needle, $by));
     }
 
     public function getStates(
@@ -317,12 +318,12 @@ class Entity extends \Lihoy\Moysklad\Base
     }
 
     public function getState(
-        string $fieldValue,
-        string $fieldName = 'name'
+        string $needle,
+        string $by = 'name'
     ) {
-        $stateList = $this->getStates([[$fieldName, '=', $fieldValue]]);
+        $stateList = $this->getStates([[$by, '=', $needle]]);
         if (empty($stateList)) {
-            throw new \Exception("State with $fieldName = $fieldValue doesn`t exist");
+            throw new \Exception("State with $by = $needle doesn`t exist");
         }
         return $stateList[0];
     }
