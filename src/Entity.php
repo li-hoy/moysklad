@@ -2,6 +2,7 @@
 
 namespace Lihoy\Moysklad;
 
+use Exception;
 use Lihoy\Moysklad\Client;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\BadResponseException;
@@ -19,6 +20,10 @@ class Entity extends \Lihoy\Moysklad\Base
         $system = ['meta'],
         $type = null;
 
+    /**
+     * @param array|string $entityData
+     * @param Client $client
+     */
     public function __construct(
         $entityData = null,
         Client $client = null
@@ -26,7 +31,7 @@ class Entity extends \Lihoy\Moysklad\Base
         $this->client = $client;
         if (is_object($entityData)) {
             if (false === isset($entityData->meta)) {
-                throw new \Exception("'meta' field is required");
+                throw new Exception("'meta' field is required");
             }
             foreach ($entityData as $fieldName=>$fieldValue) {
                 $this->data[$fieldName] = $this->updateField($fieldValue);
@@ -37,22 +42,6 @@ class Entity extends \Lihoy\Moysklad\Base
             $this->type = $entityData;
         }
         $this->changed = [];
-    }
-
-    public function __set($fieldName, $fieldValue)
-    {
-        if (
-            in_array($fieldName, $this->readonly)
-            && false === is_null($this->changed)
-        ) {
-            throw new \Exception(
-                "Trying to set a value to a read-only field."
-            );
-        }
-        if (false === is_null($this->changed)) {
-            $this->changed[] = $fieldName;
-        }
-        $this->data[$fieldName] = $this->updateField($fieldValue);
     }
 
     public function __get($fieldName)
@@ -77,9 +66,25 @@ class Entity extends \Lihoy\Moysklad\Base
                 return $additionalField;
             }
         }
-        throw new \Exception(
+        throw new Exception(
             "Trying to get a non-existent field '{$fieldName}' value."
         );
+    }
+
+    public function __set($fieldName, $fieldValue)
+    {
+        if (
+            in_array($fieldName, $this->readonly)
+            && false === is_null($this->changed)
+        ) {
+            throw new Exception(
+                "Trying to set a value to a read-only field."
+            );
+        }
+        if (false === is_null($this->changed)) {
+            $this->changed[] = $fieldName;
+        }
+        $this->data[$fieldName] = $this->updateField($fieldValue);
     }
     
     public function __isset($name)
@@ -87,6 +92,10 @@ class Entity extends \Lihoy\Moysklad\Base
         return isset($this->data[$name]);
     }
 
+    /**
+     * @param object $data
+     * @return bool
+     */
     protected function updateData(object $data)
     {
         $this->data = [];
@@ -96,6 +105,10 @@ class Entity extends \Lihoy\Moysklad\Base
         return true;
     }
 
+    /**
+     * @param array|object $field
+     * @return array|object
+     */
     protected function updateField($field)
     {
         if (is_array($field)) {
@@ -119,6 +132,11 @@ class Entity extends \Lihoy\Moysklad\Base
         return $field;
     }
 
+    /**
+     * @param string|null $name
+     * @param mixed $value
+     * @return mixed
+     */
     public function af(
         ?string $name = null,
         $value = null
@@ -151,7 +169,7 @@ class Entity extends \Lihoy\Moysklad\Base
             }
         }
         if (is_null($additionalField)) {
-            throw new \Exception(
+            throw new Exception(
                 "Trying to get non-existent additional field '{$name}' value."
             );
         }
@@ -171,6 +189,9 @@ class Entity extends \Lihoy\Moysklad\Base
         return $additionalField;
     }
 
+    /**
+     * @return array
+     */
     public function getMetaAdditionalFields()
     {
         if (empty($this->additional_fields)) {
@@ -181,6 +202,9 @@ class Entity extends \Lihoy\Moysklad\Base
         return $this->additional_fields;
     }
 
+    /**
+     * @return object
+     */
     public function getMetadata() {
         if (is_null($this->metadata)) {
             $this->metadata = $this->client->getMetadata($this->type);
@@ -188,13 +212,20 @@ class Entity extends \Lihoy\Moysklad\Base
         return $this->metadata;
     }
 
+    /**
+     * @return string
+     */
     protected function parseId()
     {
         $uriParts = explode('/', $this->data['meta']->href);
         return end($uriParts);
     }
 
-    public function map($fieldNameList)
+    /**
+     * @param string $fieldNameList
+     * @return object
+     */
+    public function map(string $fieldNameList)
     {
         $out = (object) [];
         foreach ($fieldNameList as $fieldName) {
@@ -206,11 +237,17 @@ class Entity extends \Lihoy\Moysklad\Base
     }
 
     /**
-     *  by default ms api return 25 events - max = 100
+     *  By default moysklad API return 25 events - max = 100
+     * 
+     * @param int $limit
+     * @param int $offset
+     * @return array
      */
-    public function getEvents(object $entity, int $limit = null, int $offset = null)
-    {
-        $queryLimit = 100;
+    public function getEvents(
+        int $limit = null,
+        int $offset = null
+    ) {
+        $queryLimit = $this->client->getEventsQueryLimitMax();
         if ($limit && $limit < $queryLimit) {
             $queryLimit = $limit;
         }
@@ -218,7 +255,7 @@ class Entity extends \Lihoy\Moysklad\Base
         $totalCount = 0;
         $eventList = [];
         do {
-            $href = $entity->meta->href."/audit?limit=".$queryLimit."&offest=".$offset;
+            $href = $this->data['meta']->href . "/audit?limit=" . $queryLimit . "&offest=" . $offset;
             $response = $this->client->connection->get($href);
             $rows = $response->rows;
             if (is_null($limit)) {
@@ -238,11 +275,18 @@ class Entity extends \Lihoy\Moysklad\Base
         return $eventList;
     }
 
+    /**
+     * @param string $searchType
+     * @param int|null $recursive
+     * @param int $limit
+     * @param string|null $expand
+     * @return array
+     */
     public function getLinkedEntities(
         string $searchType,
         ?int $recursive = null,
         int $limit = 1,
-        $expand = null
+        ?string $expand = null
     ) {
         $resultLinkedEntityList = [];
         foreach($this->getData() as $linkedEnitiesType=>$linkedEntityList) {
@@ -300,6 +344,11 @@ class Entity extends \Lihoy\Moysklad\Base
         return $resultLinkedEntityList;
     }
 
+    /**
+     * @param string $needle
+     * @param string $by
+     * @return void
+     */
     public function setState(
         string $needle,
         string $by = 'name'
@@ -307,6 +356,10 @@ class Entity extends \Lihoy\Moysklad\Base
         $this->__set('state', $this->getState($needle, $by));
     }
 
+    /**
+     * @param array 
+     * @return array
+     */
     public function getStates(
         array $filter = []
     ) {
@@ -317,17 +370,37 @@ class Entity extends \Lihoy\Moysklad\Base
         return $this->client->filter($stateList, $filter);
     }
 
+    /**
+     * @param string $needle
+     * @param string $by
+     * @return array
+     */
     public function getState(
         string $needle,
         string $by = 'name'
     ) {
         $stateList = $this->getStates([[$by, '=', $needle]]);
         if (empty($stateList)) {
-            throw new \Exception("State with $by = $needle doesn`t exist");
+            throw new Exception("State with $by = $needle doesn`t exist");
         }
         return $stateList[0];
     }
 
+    /**
+     * @return bool
+     */
+    public function remove()
+    {
+        if (false === isset($this->data->meta->href)) {
+            return false;
+        }
+        $response = $this->client->getConnection()->query('DELETE', $href);
+        return true;
+    }
+
+    /**
+     * @return bool
+     */
     public function save()
     {
         $requestData = [];
@@ -346,7 +419,7 @@ class Entity extends \Lihoy\Moysklad\Base
             return false;
         }
         $method = 'POST';
-        $href = Client::BASE_URI . Client::ENTITY_URI . '/'.$this->type;
+        $href = Client::BASE_URI . Client::ENTITY_URI . '/' . $this->type;
         if (isset($this->data['meta'])) {
             $requestData['meta'] = $this->data['meta'];
             $method = 'PUT';
@@ -358,11 +431,18 @@ class Entity extends \Lihoy\Moysklad\Base
         return $this;
     }
 
+    /**
+     * @return object
+     */
     protected function getData()
     {
         return (object) $this->data;
     }
 
+    /**
+     * @param array|object
+     * @return mixed
+     */
     protected function getFieldData($field)
     {
         $fieldData = $field;

@@ -2,6 +2,7 @@
 
 namespace Lihoy\Moysklad\Components\Http;
 
+use Exception;
 use GuzzleHttp\Client as HttpClient;
 use Lihoy\Moysklad\Client as MoyskladClient;
 use Lihoy\Moysklad\Components\Http\Query;
@@ -20,7 +21,7 @@ class Connection extends \Lihoy\Moysklad\Base
 
     public function __construct($login, $pass, $options = [])
     {
-        $this->token = base64_encode($login.':'.$pass);
+        $this->token = base64_encode($login . ':' . $pass);
         $this->requestOptions = [
             'headers' => [
                 'Authorization' => "Basic $this->token",
@@ -81,7 +82,7 @@ class Connection extends \Lihoy\Moysklad\Base
             }
         } else {
             if (in_array($key, ['headers'])) {
-                throw new \Exception("Wrong argument '$key' type, array expected.");
+                throw new Exception("Wrong argument '$key' type, array expected.");
             }
             $this->requestOptions[$key] = $value;
         }
@@ -97,5 +98,4 @@ class Connection extends \Lihoy\Moysklad\Base
         $delay = intval($delay * 1000);
         $this->setRequestOption('delay', $delay);
     }
-
 }
