@@ -65,6 +65,7 @@ class Entity extends Base
         }
         foreach ($additionalFieldList as $additionalField) {
             if (false === isset($additionalField->name)) {
+                // TODO fix me or remove
             }
             if ($additionalField->name === $fieldName) {
                 return $additionalField;
@@ -245,6 +246,7 @@ class Entity extends Base
     public function map(string $fieldNameList): object
     {
         $out = (object) [];
+        // TODO fix me foreach on string???
         foreach ($fieldNameList as $fieldName) {
             if (isset($this->data[$fieldName])) {
                 $out->$fieldName = $this->data[$fieldName];
@@ -408,9 +410,11 @@ class Entity extends Base
      */
     public function remove(): bool
     {
+        // TODO different path to href for DELETE query and for href inside Save method???
         if (false === isset($this->data->meta->href)) {
             return false;
         }
+        // TODO fix me
         $response = $this->client->getConnection()->query('DELETE', $href);
         return true;
     }
