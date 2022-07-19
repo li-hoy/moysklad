@@ -240,14 +240,14 @@ class Entity extends Base
 
     /**
      *
-     * @param string $fieldNameList
+     * @param array $fieldNamesList
      * @return object
      */
-    public function map(string $fieldNameList): object
+    public function map(array $fieldNamesList): object
     {
         $out = (object) [];
         // TODO fix me foreach on string???
-        foreach ($fieldNameList as $fieldName) {
+        foreach ($fieldNamesList as $fieldName) {
             if (isset($this->data[$fieldName])) {
                 $out->$fieldName = $this->data[$fieldName];
             }
