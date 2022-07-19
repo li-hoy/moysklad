@@ -246,7 +246,6 @@ class Entity extends Base
     public function map(array $fieldNamesList): object
     {
         $out = (object) [];
-        // TODO fix me foreach on string???
         foreach ($fieldNamesList as $fieldName) {
             if (isset($this->data[$fieldName])) {
                 $out->$fieldName = $this->data[$fieldName];
