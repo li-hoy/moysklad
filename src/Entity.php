@@ -392,7 +392,7 @@ class Entity extends Base
     /**
      * @param string $needle
      * @param string $by
-     * @return array
+     * @return object
      */
     public function getState(
         string $needle,
@@ -410,12 +410,10 @@ class Entity extends Base
      */
     public function remove(): bool
     {
-        // TODO different path to href for DELETE query and for href inside Save method???
-        if (false === isset($this->data->meta->href)) {
-            return false;
+        if (false === isset($this->data['meta']->href)) {
+            throw new Exception("It is not possible to delete a non-existent entity.");
         }
-        // TODO fix me
-        $response = $this->client->getConnection()->query('DELETE', $href);
+        $response = $this->client->getConnection()->query('DELETE', $this->data['meta']->href);
         return true;
     }
 
@@ -444,7 +442,7 @@ class Entity extends Base
         if (isset($this->data['meta'])) {
             $requestData['meta'] = $this->data['meta'];
             $method = 'PUT';
-            $href = $this->meta->href;
+            $href = $this->data['meta']->href;
         }
         $response = $this->client->getConnection()->query($method, $href, $requestData);
         $this->updateData($response);
