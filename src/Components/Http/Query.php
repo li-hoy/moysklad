@@ -4,10 +4,12 @@ namespace Lihoy\Moysklad\Components\Http;
 
 use Exception;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Psr7\Request;
+use Lihoy\Moysklad\Base;
+use Psr\Http\Message\ResponseInterface;
 
-class Query extends \Lihoy\Moysklad\Base
+class Query extends Base
 {
     protected
         $client,
@@ -22,7 +24,12 @@ class Query extends \Lihoy\Moysklad\Base
         $this->request = new Request($method, $url);
     }
 
-    public function send(array $requestData = [])
+    /**
+     *
+     * @param array $requestData
+     * @return ResponseInterface
+     */
+    public function send(array $requestData = []): ResponseInterface
     {
         try {
             return $this->client->send($this->request, ['json' => $requestData]);
@@ -37,7 +44,11 @@ class Query extends \Lihoy\Moysklad\Base
         }
     }
 
-    protected function delay()
+    /**
+     *
+     * @return void
+     */
+    protected function delay(): void
     {
         $delayTime = intval($this->client->delay * 1000000);
         \usleep($delayTime);

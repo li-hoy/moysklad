@@ -3,11 +3,10 @@
 namespace Lihoy\Moysklad;
 
 use Exception;
+use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Client;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Exception\BadResponseException;
 
-class Entity extends \Lihoy\Moysklad\Base
+class Entity extends Base
 {
     protected
         $additional_fields = [],
@@ -44,6 +43,11 @@ class Entity extends \Lihoy\Moysklad\Base
         $this->changed = [];
     }
 
+    /**
+     *
+     * @param string $fieldName
+     * @return mixed
+     */
     public function __get($fieldName)
     {
         if (array_key_exists($fieldName, $this->data)) {
@@ -61,6 +65,7 @@ class Entity extends \Lihoy\Moysklad\Base
         }
         foreach ($additionalFieldList as $additionalField) {
             if (false === isset($additionalField->name)) {
+                // TODO fix me or remove
             }
             if ($additionalField->name === $fieldName) {
                 return $additionalField;
@@ -71,7 +76,13 @@ class Entity extends \Lihoy\Moysklad\Base
         );
     }
 
-    public function __set($fieldName, $fieldValue)
+    /**
+     *
+     * @param string $fieldName
+     * @param mixed $fieldValue
+     * @return void
+     */
+    public function __set($fieldName, $fieldValue): void
     {
         if (
             in_array($fieldName, $this->readonly)
@@ -86,7 +97,12 @@ class Entity extends \Lihoy\Moysklad\Base
         }
         $this->data[$fieldName] = $this->updateField($fieldValue);
     }
-    
+
+    /**
+     *
+     * @param string $name
+     * @return bool
+     */
     public function __isset($name)
     {
         return isset($this->data[$name]);
@@ -96,7 +112,7 @@ class Entity extends \Lihoy\Moysklad\Base
      * @param object $data
      * @return bool
      */
-    protected function updateData(object $data)
+    protected function updateData(object $data): bool
     {
         $this->data = [];
         foreach ($data as $fieldName=>$fieldValue) {
@@ -192,7 +208,7 @@ class Entity extends \Lihoy\Moysklad\Base
     /**
      * @return array
      */
-    public function getMetaAdditionalFields()
+    public function getMetaAdditionalFields(): array
     {
         if (empty($this->additional_fields)) {
             $this->additional_fields = $this->client->getEntities(
@@ -205,7 +221,8 @@ class Entity extends \Lihoy\Moysklad\Base
     /**
      * @return object
      */
-    public function getMetadata() {
+    public function getMetadata(): object
+    {
         if (is_null($this->metadata)) {
             $this->metadata = $this->client->getMetadata($this->type);
         }
@@ -215,19 +232,21 @@ class Entity extends \Lihoy\Moysklad\Base
     /**
      * @return string
      */
-    protected function parseId()
+    protected function parseId(): string
     {
         $uriParts = explode('/', $this->data['meta']->href);
         return end($uriParts);
     }
 
     /**
+     *
      * @param string $fieldNameList
      * @return object
      */
-    public function map(string $fieldNameList)
+    public function map(string $fieldNameList): object
     {
         $out = (object) [];
+        // TODO fix me foreach on string???
         foreach ($fieldNameList as $fieldName) {
             if (isset($this->data[$fieldName])) {
                 $out->$fieldName = $this->data[$fieldName];
@@ -238,7 +257,7 @@ class Entity extends \Lihoy\Moysklad\Base
 
     /**
      *  By default moysklad API return 25 events - max = 100
-     * 
+     *
      * @param int $limit
      * @param int $offset
      * @return array
@@ -246,7 +265,7 @@ class Entity extends \Lihoy\Moysklad\Base
     public function getEvents(
         int $limit = null,
         int $offset = null
-    ) {
+    ): array {
         $queryLimit = $this->client->getEventsQueryLimitMax();
         if ($limit && $limit < $queryLimit) {
             $queryLimit = $limit;
@@ -287,7 +306,7 @@ class Entity extends \Lihoy\Moysklad\Base
         ?int $recursive = null,
         int $limit = 1,
         ?string $expand = null
-    ) {
+    ): array {
         $resultLinkedEntityList = [];
         foreach($this->getData() as $linkedEnitiesType=>$linkedEntityList) {
             if (in_array($linkedEnitiesType, ['attributes', 'positions', 'files'])) {
@@ -352,12 +371,12 @@ class Entity extends \Lihoy\Moysklad\Base
     public function setState(
         string $needle,
         string $by = 'name'
-    ) {
+    ): void {
         $this->__set('state', $this->getState($needle, $by));
     }
 
     /**
-     * @param array 
+     * @param array $filter
      * @return array
      */
     public function getStates(
@@ -389,17 +408,19 @@ class Entity extends \Lihoy\Moysklad\Base
     /**
      * @return bool
      */
-    public function remove()
+    public function remove(): bool
     {
+        // TODO different path to href for DELETE query and for href inside Save method???
         if (false === isset($this->data->meta->href)) {
             return false;
         }
+        // TODO fix me
         $response = $this->client->getConnection()->query('DELETE', $href);
         return true;
     }
 
     /**
-     * @return bool
+     * @return bool|$this
      */
     public function save()
     {
@@ -434,7 +455,7 @@ class Entity extends \Lihoy\Moysklad\Base
     /**
      * @return object
      */
-    protected function getData()
+    protected function getData(): object
     {
         return (object) $this->data;
     }
