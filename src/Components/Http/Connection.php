@@ -19,7 +19,13 @@ class Connection extends \Lihoy\Moysklad\Base
         $requestOptions,
         $httpClient;
 
-    public function __construct($login, $pass, $options = [])
+    /**
+     *
+     * @param string $login
+     * @param string $pass
+     * @param array $options
+     */
+    public function __construct(string $login, string $pass, array $options = [])
     {
         $this->token = base64_encode($login . ':' . $pass);
         $this->requestOptions = [
@@ -32,27 +38,58 @@ class Connection extends \Lihoy\Moysklad\Base
         $this->httpClient = new HttpClient($this->requestOptions);
     }
 
-    public function get($url)
+    /**
+     *
+     * @param string $url
+     * @return mixed
+     */
+    public function get(string $url)
     {
         return $this->query('GET', $url, []);
     }
 
-    public function post($url, array $data)
+    /**
+     *
+     * @param string $url
+     * @param array $data
+     * @return mixed
+     */
+    public function post(string $url, array $data)
     {
         return $this->query('POST', $url, $data);
     }
 
+    /**
+     *
+     * @param string $url
+     * @param array $data
+     * @return mixed
+     */
     public function put(string $url, array $data = [])
     {
         return $this->query('PUT', $url, $data);
     }
 
+    /**
+     *
+     * @param string $url
+     * @param array $data
+     * @return mixed
+     */
     public function delete(string $url, array $data = [])
     {
         return $this->query('DELETE', $url, $data);
     }
 
-    public function query(string $method, string $url, array $data = [], $json = true)
+    /**
+     *
+     * @param string $method
+     * @param string $url
+     * @param array $data
+     * @param boolean $json
+     * @return mixed
+     */
+    public function query(string $method, string $url, array $data = [], bool $json = true)
     {
         $query = new Query($this->httpClient, $method, $url);
         $response = $query->send($data);
@@ -64,17 +101,31 @@ class Connection extends \Lihoy\Moysklad\Base
         return \json_decode($content);
     }
 
-    public function getToken()
+    /**
+     *
+     * @return string
+     */
+    public function getToken(): string
     {
         return $this->token;
     }
 
-    public function getRequestOptions()
+    /**
+     *
+     * @return array
+     */
+    public function getRequestOptions(): array
     {
         return $this->requestOptions;
     }
 
-    public function setRequestOption(string $key, $value)
+    /**
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function setRequestOption(string $key, $value): self
     {
         if (is_array($value)) {
             foreach ($value as $headerName=>$headerValue){
@@ -93,7 +144,12 @@ class Connection extends \Lihoy\Moysklad\Base
         return $this;
     }
 
-    public function setDelay(float $delay)
+    /**
+     *
+     * @param float $delay
+     * @return void
+     */
+    public function setDelay(float $delay): void
     {
         $delay = intval($delay * 1000);
         $this->setRequestOption('delay', $delay);

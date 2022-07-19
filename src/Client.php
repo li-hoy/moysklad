@@ -42,14 +42,15 @@ class Client extends \Lihoy\Moysklad\Base
      */
     public function createEntity(
         $entityType
-    ) {
+    ): Entity {
         return new Entity($entityType, $this);
     }
 
     /**
-     * @return void
+     *
+     * @return Connection
      */
-    public function getConnection()
+    public function getConnection(): Connection
     {
         return $this->connection;
     }
@@ -64,7 +65,7 @@ class Client extends \Lihoy\Moysklad\Base
         string $entityType,
         string $id,
         ?string $expand = null
-    ) {
+    ): Entity {
         $href = static::BASE_URI . static::ENTITY_URI . "/" . $entityType . '/' . $id;
         return $this->getEntityByHref($href, $expand);
     }
@@ -77,7 +78,7 @@ class Client extends \Lihoy\Moysklad\Base
     public function getEntityByHref(
         string $href,
         ?string $expand = null
-    ) {
+    ): Entity {
         if ($expand) {
             $href = $href . '?expand=' . $expand;
         }
@@ -87,7 +88,7 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * Get entities list with filtering
-     * 
+     *
      * @param string $entityType
      * @param array $filterList
      * @param int $limit
@@ -101,7 +102,7 @@ class Client extends \Lihoy\Moysklad\Base
         int $limit = null,
         int $offset = null,
         array $paramsList = []
-    ) {
+    ): array {
         return $this->getCollection(
             'entity/' . $entityType,
             $filterList,
@@ -119,7 +120,7 @@ class Client extends \Lihoy\Moysklad\Base
     public function getEntitiesByHref(
         array $hrefsList,
         ?string $expand = null
-    ) {
+    ): array {
         $entitiesList = [];
         foreach ($hrefsList as $href) {
             $entitiesList[] = $this->getEntityByHref($href, $expand);
@@ -137,7 +138,7 @@ class Client extends \Lihoy\Moysklad\Base
         string $entityType,
         array $idsList,
         ?string $expand = null
-    ) {
+    ): array {
         $entityList = [];
         foreach ($idsList as $id) {
             $entityList[] = $this->getEntityByHref($entityType, $id, $expand);
@@ -147,10 +148,10 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * Get stock
-     * 
+     *
      * groupBy values: product, variant, consignment
      * groupBy default value: variant
-     * 
+     *
      * @param bool $byStore
      * @param int|null $limit
      * @param int|null $offset
@@ -164,7 +165,7 @@ class Client extends \Lihoy\Moysklad\Base
         ?int $offset = null,
         ?string $groupBy = null,
         array $filtersList = []
-    ) {
+    ): array {
         $endPoint = 'report/stock/' . ($byStore ? 'bystore' : 'all');
         return $this->getCollection(
             $endPoint,
@@ -187,7 +188,7 @@ class Client extends \Lihoy\Moysklad\Base
         ?string $stockType = null,
         bool $zeroLines = false,
         array $filtersList = []
-    ) {
+    ): array {
         if (\is_null($stockType)) {
             $stockType = 'stock';
         }
@@ -221,7 +222,7 @@ class Client extends \Lihoy\Moysklad\Base
      */
     public function getEmployeeByUid(
         string $uid
-    ) {
+    ): Entity {
         $employeeList = $this->getEntities('employee', [['uid', '=', $uid]]);
         if (empty($employeeList)) {
             throw new Exception("Employee with $uid doesn`t exist.");
@@ -241,7 +242,7 @@ class Client extends \Lihoy\Moysklad\Base
         string $entityType,
         string $eventType,
         ?string $uid = null
-    ) {
+    ): Entity {
         $eventType = mb_strtolower($eventType);
         $entityType = mb_strtolower($entityType);
         $eventList = $this->connection->get($auditHref . '/events')->rows;
@@ -265,7 +266,7 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * filter operators =, !=, <, >, <=, >=
-     * 
+     *
      * @param array $list
      * @param array $filter
      * @return array
@@ -273,7 +274,7 @@ class Client extends \Lihoy\Moysklad\Base
     public function filter(
         array $list,
         array $filter
-    ) {
+    ): array {
         foreach ($list as $key=>$value) {
             $filtered = false;
             foreach ($filter as $rule) {
@@ -319,7 +320,7 @@ class Client extends \Lihoy\Moysklad\Base
      */
     public function getMetadata(
         ?string $entityType = null
-    ) {
+    ): object {
         if (is_null($this->metadata)) {
             $this->metadata = array_map(
                 function ($entityMetadata) {
@@ -347,7 +348,7 @@ class Client extends \Lihoy\Moysklad\Base
     public function addWebhooks(
         $subscriptionList,
         string $url
-    ) {
+    ): array {
         if (is_string($subscriptionList)) {
             $subscriptionList = [$subscriptionList];
         }
@@ -383,7 +384,7 @@ class Client extends \Lihoy\Moysklad\Base
      * @param string $id
      * @return object
      */
-    public function getWebhook(string $id)
+    public function getWebhook(string $id): object
     {
         return $this->connection->get(static::BASE_URI . static::HOOK_URI . "/{$id}");
     }
@@ -392,7 +393,7 @@ class Client extends \Lihoy\Moysklad\Base
      * @param array $filter
      * @return array
      */
-    public function getWebhooks(array $filter = [])
+    public function getWebhooks(array $filter = []): array
     {
         $webhookList = $this->connection->get(static::BASE_URI . static::HOOK_URI)->rows;
         if (empty($filter)) {
@@ -403,10 +404,10 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * @param array|string $subscriptionList
-     * @param string
+     * @param string $url
      * @return array
      */
-    public function deleteWebhooks($subscriptionList, string $url)
+    public function deleteWebhooks($subscriptionList, string $url): array
     {
         if (is_string($subscriptionList)) {
             $subscriptionList = [$subscriptionList];
@@ -431,15 +432,16 @@ class Client extends \Lihoy\Moysklad\Base
 
     /**
      * Get entities list with filtering
-     * 
+     *
      * filterList example: [['sum', '>' '100'], ['sum', '<' '200']]
      * opaerators: ['=', '>', '<', '>=', '<=', '!=', '~', '~=', '=~']
-     * 
+     *
      * @param string $endPoint
      * @param array $filterList
      * @param int $limit
      * @param int $offset
      * @param array $paramsList
+     * @return array
      */
     public function getCollection(
         string $endPoint,
@@ -447,7 +449,7 @@ class Client extends \Lihoy\Moysklad\Base
         int $limit = null,
         int $offset = null,
         array $paramsList = []
-    ) {
+    ): array {
         $queryLimit = $this->entitiesQueryLimitMax;
         if ($limit && $queryLimit > $limit) {
             $queryLimit = $limit;
@@ -500,14 +502,14 @@ class Client extends \Lihoy\Moysklad\Base
     /**
      * @param string $type
      * @param string $id
-     * @param bool
+     * @param bool $metadata
      * @return object
      */
     public function createLink(
         string $type,
         string $id,
         bool $metadata = false
-    ) {
+    ): object {
         $link = (object) [
             'meta' => (object) [
                 'href' => static::BASE_URI . static::ENTITY_URI . "/{$type}/$id",
@@ -528,7 +530,7 @@ class Client extends \Lihoy\Moysklad\Base
      */
     public function setEntitiesQueryLimitMax(
         ?int $newValue
-    ) {
+    ): void {
         $this->entitiesQueryLimitMax = is_null($newValue)
             ? self::ENTITIES_QUERY_LIMIT_MAX
             : $newValue;
@@ -537,7 +539,7 @@ class Client extends \Lihoy\Moysklad\Base
     /**
      * @return int
      */
-    public function getEntitiesQueryLimitMax()
+    public function getEntitiesQueryLimitMax(): int
     {
         return $this->entitiesQueryLimitMax;
     }
@@ -548,7 +550,7 @@ class Client extends \Lihoy\Moysklad\Base
      */
     public function setEventsQueryLimitMax(
         ?int $newValue
-    ) {
+    ): void {
         $this->eventsQueryLimitMax = is_null($newValue)
             ? self::EVENTS_QUERY_LIMIT_MAX
             : $newValue;
@@ -557,7 +559,7 @@ class Client extends \Lihoy\Moysklad\Base
     /**
      * @return int
      */
-    public function getEventsQueryLimitMax()
+    public function getEventsQueryLimitMax(): int
     {
         return $this->eventsQueryLimitMax;
     }

@@ -22,7 +22,12 @@ class Query extends \Lihoy\Moysklad\Base
         $this->request = new Request($method, $url);
     }
 
-    public function send(array $requestData = [])
+    /**
+     *
+     * @param array $requestData
+     * @return ResponseInterface
+     */
+    public function send(array $requestData = []): ResponseInterface
     {
         try {
             return $this->client->send($this->request, ['json' => $requestData]);
@@ -37,7 +42,11 @@ class Query extends \Lihoy\Moysklad\Base
         }
     }
 
-    protected function delay()
+    /**
+     *
+     * @return void
+     */
+    protected function delay(): void
     {
         $delayTime = intval($this->client->delay * 1000000);
         \usleep($delayTime);
