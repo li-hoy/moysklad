@@ -65,7 +65,7 @@ class Entity extends Base
         }
         foreach ($additionalFieldList as $additionalField) {
             if (false === isset($additionalField->name)) {
-                // TODO fix me or remove
+                continue;
             }
             if ($additionalField->name === $fieldName) {
                 return $additionalField;
