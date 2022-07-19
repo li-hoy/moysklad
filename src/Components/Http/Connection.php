@@ -4,10 +4,10 @@ namespace Lihoy\Moysklad\Components\Http;
 
 use Exception;
 use GuzzleHttp\Client as HttpClient;
-use Lihoy\Moysklad\Client as MoyskladClient;
+use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Components\Http\Query;
 
-class Connection extends \Lihoy\Moysklad\Base
+class Connection extends Base
 {
     const
         DELAY = 500,

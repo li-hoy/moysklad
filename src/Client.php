@@ -3,10 +3,11 @@
 namespace Lihoy\Moysklad;
 
 use Exception;
+use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Components\Http\Connection;
 use Lihoy\Moysklad\Entity;
 
-class Client extends \Lihoy\Moysklad\Base
+class Client extends Base
 {
     public const
         BASE_URI = "https://online.moysklad.ru/api/remap/1.2",

@@ -4,10 +4,12 @@ namespace Lihoy\Moysklad\Components\Http;
 
 use Exception;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Psr7\Request;
+use Lihoy\Moysklad\Base;
+use Psr\Http\Message\ResponseInterface;
 
-class Query extends \Lihoy\Moysklad\Base
+class Query extends Base
 {
     protected
         $client,

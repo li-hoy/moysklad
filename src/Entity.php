@@ -3,11 +3,10 @@
 namespace Lihoy\Moysklad;
 
 use Exception;
+use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Client;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Exception\BadResponseException;
 
-class Entity extends \Lihoy\Moysklad\Base
+class Entity extends Base
 {
     protected
         $additional_fields = [],
