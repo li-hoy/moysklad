@@ -9,42 +9,88 @@ use Lihoy\Moysklad\Entity;
 
 class Client extends Base
 {
-    public const
-        BASE_URI = "https://online.moysklad.ru/api/remap/1.2",
-        ENTITY_URI = "/entity",
-        HOOK_URI = "/entity/webhook",
-        METADATA_URI = "/metadata",
-        ENTITIES_QUERY_LIMIT_MAX = 1000,
-        EVENTS_QUERY_LIMIT_MAX = 100;
 
-    protected
-        $connection,
-        $metadata,
-        $entitiesQueryLimitMax,
-        $eventsQueryLimitMax;
+    /**
+     * 
+     * @var string
+     */
+    public const BASE_URI = 'https://online.moysklad.ru/api/remap/1.2';
+
+    /**
+     * 
+     * @var string
+     */
+    public const ENTITY_URI = '/entity';
+
+    /**
+     * 
+     * @var string
+     */
+    public const HOOK_URI = '/entity/webhook';
+
+    /**
+     * 
+     * @var string
+     */
+    public const METADATA_URI = '/metadata';
+
+    /**
+     * 
+     * @var int
+     */
+    public const ENTITIES_QUERY_LIMIT_MAX = 1000;
+
+    /**
+     * 
+     * @var int
+     */
+    public const EVENTS_QUERY_LIMIT_MAX = 100;
+
+    /**
+     * 
+     * @var Connection
+     */
+    public $connection;
+    
+    /**
+     * 
+     * @var array
+     */
+    protected $metadata;
+    
+    /**
+     * 
+     * @var int
+     */
+    protected $entities_query_limit_max;
+    
+    /**
+     * 
+     * @var int
+     */
+    protected $events_query_limit_max;
 
     /**
      * @param string $login
      * @param string $password
      */
-    public function __construct(
-        string $login,
-        string $password
-    ) {
-        $this->entitiesQueryLimitMax = self::ENTITIES_QUERY_LIMIT_MAX;
-        $this->eventsQueryLimitMax = self::EVENTS_QUERY_LIMIT_MAX;
+    public function __construct(string $login, string $password) {
+        $this->entities_query_limit_max = self::ENTITIES_QUERY_LIMIT_MAX;
+
+        $this->events_query_limit_max = self::EVENTS_QUERY_LIMIT_MAX;
+
         $this->connection = new Connection($login, $password);
+
         $this->metadata = null;
     }
 
     /**
-     * @param mixed entityData
+     * @param array|string $entity_data
      * @return Entity
      */
-    public function createEntity(
-        $entityType
-    ): Entity {
-        return new Entity($entityType, $this);
+    public function createEntity($entity_data): Entity
+    {
+        return new Entity($entity_data, $this);
     }
 
     /**
@@ -57,17 +103,15 @@ class Client extends Base
     }
 
     /**
-     * @param string $entityType
+     * @param string $entity_type
      * @param string $id
      * @param string|null $expand
      * @return Entity
      */
-    public function getEntityById(
-        string $entityType,
-        string $id,
-        ?string $expand = null
-    ): Entity {
-        $href = static::BASE_URI . static::ENTITY_URI . "/" . $entityType . '/' . $id;
+    public function getEntityById(string $entity_type, string $id, ?string $expand = null): Entity
+    {
+        $href = static::BASE_URI . static::ENTITY_URI . "/" . $entity_type . '/' . $id;
+
         return $this->getEntityByHref($href, $expand);
     }
 
@@ -76,75 +120,70 @@ class Client extends Base
      * @param string|null $expand
      * @return Entity
      */
-    public function getEntityByHref(
-        string $href,
-        ?string $expand = null
-    ): Entity {
+    public function getEntityByHref(string $href, ?string $expand = null): Entity
+    {
         if ($expand) {
             $href = $href . '?expand=' . $expand;
         }
-        $entityData = $this->connection->get($href);
-        return new Entity($entityData, $this);
+
+        $entity_data = $this->connection
+            ->get($href);
+
+        return new Entity($entity_data, $this);
     }
 
     /**
      * Get entities list with filtering
      *
-     * @param string $entityType
-     * @param array $filterList
+     * @param string $entity_type
+     * @param array $filter_list
      * @param int $limit
      * @param int $offset
-     * @param array $paramList
+     * @param array $params_list
      * @return array
      */
     public function getEntities(
-        string $entityType,
-        array $filterList = [],
+        string $entity_type,
+        array $filters_list = [],
         int $limit = null,
         int $offset = null,
-        array $paramsList = []
-    ): array {
-        return $this->getCollection(
-            'entity/' . $entityType,
-            $filterList,
-            $limit,
-            $offset,
-            $paramsList
-        );
+        array $params_list = []
+    ): array
+    {
+        return $this->getCollection('entity/' . $entity_type, $filters_list, $limit, $offset, $params_list);
     }
 
     /**
-     * @param array $hrefsList
+     * @param array $hrefs_list
      * @param string|null $expand
      * @return array
      */
-    public function getEntitiesByHref(
-        array $hrefsList,
-        ?string $expand = null
-    ): array {
-        $entitiesList = [];
-        foreach ($hrefsList as $href) {
-            $entitiesList[] = $this->getEntityByHref($href, $expand);
+    public function getEntitiesByHref(array $hrefs_list, ?string $expand = null): array
+    {
+        $entities_list = [];
+
+        foreach ($hrefs_list as $href) {
+            $entities_list[] = $this->getEntityByHref($href, $expand);
         }
-        return $entitiesList;
+
+        return $entities_list;
     }
 
     /**
-     * @param string $entityType
-     * @param array $idsList
+     * @param string $entity_type
+     * @param array $ids_list
      * @param string|null $expand
      * @return array
      */
-    public function getEntitiesById(
-        string $entityType,
-        array $idsList,
-        ?string $expand = null
-    ): array {
-        $entityList = [];
-        foreach ($idsList as $id) {
-            $entityList[] = $this->getEntityByHref($entityType, $id, $expand);
+    public function getEntitiesById(string $entity_type, array $ids_list, ?string $expand = null): array
+    {
+        $entities_list = [];
+
+        foreach ($ids_list as $id) {
+            $entities_list[] = $this->getEntityByHref($entity_type, $id, $expand);
         }
-        return $entityList;
+
+        return $entities_list;
     }
 
     /**
@@ -153,116 +192,133 @@ class Client extends Base
      * groupBy values: product, variant, consignment
      * groupBy default value: variant
      *
-     * @param bool $byStore
+     * @param bool $is_by_store
      * @param int|null $limit
      * @param int|null $offset
-     * @param string|null $groupBy
-     * @param array $filtersList
+     * @param string|null $group_by
+     * @param array $filters_list
      * @return array
      */
     public function getStock(
-        bool $byStore = false,
+        bool $is_by_store = false,
         ?int $limit = null,
         ?int $offset = null,
-        ?string $groupBy = null,
-        array $filtersList = []
-    ): array {
-        $endPoint = 'report/stock/' . ($byStore ? 'bystore' : 'all');
-        return $this->getCollection(
-            $endPoint,
-            $filtersList,
-            $limit,
-            $offset,
-            ['groupBy' => $groupBy]
-        );
+        ?string $group_by = null,
+        array $filters_list = []
+    ): array
+    {
+        $end_point = 'report/stock/' . ($is_by_store ? 'bystore' : 'all');
+
+        return $this->getCollection($end_point, $filters_list, $limit, $offset, ['groupBy' => $group_by]);
     }
 
     /**
-     * @param bool $byStore
-     * @param string|null $stockType
-     * @param bool $zeroLines
-     * @param array $filtersList
+     * 
+     * @param bool $is_by_store
+     * @param string|null $stock_type
+     * @param bool $is_zero_lines_included
+     * @param array $filters_list
      * @return array
      */
     public function getCurrentStock(
-        bool $byStore = false,
-        ?string $stockType = null,
-        bool $zeroLines = false,
-        array $filtersList = []
-    ): array {
-        if (\is_null($stockType)) {
-            $stockType = 'stock';
+        bool $is_by_store = false,
+        ?string $stock_type = null,
+        bool $is_zero_lines_included = false,
+        array $filters_list = []
+    ): array
+    {
+        if (is_null($stock_type)) {
+            $stock_type = 'stock';
         }
-        if (false === \in_array($stockType, ['stock', 'freeStock', 'quantity'])) {
-            throw new Exception("Wrong stockType value $stockType.");
+
+        if (!in_array($stock_type, ['stock', 'freeStock', 'quantity'])) {
+            throw new Exception("Wrong stock_type value $stock_type.");
         }
-        $endPoint = 'report/stock/' . ($byStore ? 'bystore' : 'all');
-        $endPoint = $endPoint . '/current';
-        $endPoint = $endPoint . "?stockType={$stockType}";
-        if ($zeroLines) {
-            $endPoint = $endPoint . '&include=zeroLines';
+        
+        $end_point = 'report/stock/' . ($is_by_store ? 'bystore' : 'all') . '/current' . "?stockType={$stock_type}";
+
+        if ($is_zero_lines_included) {
+            $end_point = $end_point . '&include=zeroLines';
         }
-        if ($filtersList) {
-            $filterURI = "filter=";
-            for ($i = 0; $i < count($filtersList); $i++) {
-                $filter = $filtersList[$i];
-                $filterURI = $filterURI.$filter[0].$filter[1].$filter[2];
-                if ($i === (count($filtersList) - 1)) {
+
+        if ($filters_list) {
+            $filter_uri = "filter=";
+
+            for ($i = 0; $i < count($filters_list); $i++) {
+                $filter = $filters_list[$i];
+
+                $filter_uri = $filter_uri . $filter[0] . $filter[1] . $filter[2];
+
+                if ($i === (count($filters_list) - 1)) {
                     break;
                 }
-                $filterURI = $filterURI . ';';
+
+                $filter_uri = $filter_uri . ';';
             }
-            $endPoint = $endPoint . "&" . $filterURI;
+
+            $end_point = $end_point . "&" . $filter_uri;
         }
-        return $this->connection->get( static::BASE_URI . '/' . $endPoint);
+        
+        return $this->connection
+            ->get(static::BASE_URI . '/' . $end_point);
     }
 
     /**
+     * 
      * @param string $uid
      * @return Entity
      */
-    public function getEmployeeByUid(
-        string $uid
-    ): Entity {
-        $employeeList = $this->getEntities('employee', [['uid', '=', $uid]]);
-        if (empty($employeeList)) {
+    public function getEmployeeByUid(string $uid): Entity
+    {
+        $employees_list = $this->getEntities('employee', [['uid', '=', $uid]]);
+
+        if (empty($employees_list)) {
             throw new Exception("Employee with $uid doesn`t exist.");
         }
-        return $employeeList[0];
+
+        return $employees_list[0];
     }
 
     /**
-     * @param string $auditHref
-     * @param string $entityType
-     * @param string $eventType
+     * 
+     * @param string $audit_href
+     * @param string $entity_type
+     * @param string $event_type
      * @param string|null $uid
      * @return Entity
      */
     public function getAuditEvent(
-        string $auditHref,
-        string $entityType,
-        string $eventType,
+        string $audit_href,
+        string $entity_type,
+        string $event_type,
         ?string $uid = null
-    ): Entity {
-        $eventType = mb_strtolower($eventType);
-        $entityType = mb_strtolower($entityType);
-        $eventList = $this->connection->get($auditHref . '/events')->rows;
-        $filteredEventList = array_values(array_filter(
-            $eventList,
-            function($event)use($entityType, $eventType, $uid) {
-                return
-                    $event->eventType === $eventType
-                    && $event->entityType === $entityType
-                    && (is_null($uid) || $event->uid === $uid);
-            }
-        ));
-        if (count($filteredEventList) > 1) {
+    ): Entity
+    {
+        $event_type = mb_strtolower($event_type);
+
+        $entity_type = mb_strtolower($entity_type);
+
+        $event_list = $this->connection
+            ->get($audit_href . '/events')
+            ->rows;
+
+        $filtered_event_list = array_filter($event_list, function($event) use ($entity_type, $event_type, $uid) {
+            return $event->eventType === $event_type
+                && $event->entityType === $entity_type
+                && (is_null($uid) || $event->uid === $uid);
+        });
+
+        $filtered_event_list = array_values($filtered_event_list);
+
+        if (count($filtered_event_list) > 1) {
             throw new Exception("Events filtering error.");
         }
-        if (empty($filteredEventList[0])) {
-            throw new Exception("No event matching parameters: $entityType, $eventType, $uid, $auditHref");
+
+        if (empty($filtered_event_list[0])) {
+            throw new Exception("No event matching parameters: {$entity_type}, {$event_type}, {$uid}, {$audit_href}");
         }
-        return $filteredEventList[0];
+
+        return $filtered_event_list[0];
     }
 
     /**
@@ -272,296 +328,375 @@ class Client extends Base
      * @param array $filter
      * @return array
      */
-    public function filter(
-        array $list,
-        array $filter
-    ): array {
-        foreach ($list as $key=>$value) {
+    public function filter(array $list, array $filter): array
+    {
+        foreach ($list as $key => $value) {
             $filtered = false;
+
             foreach ($filter as $rule) {
-                $fieldKey = $rule[0];
+                $field_key = $rule[0];
+
                 $op = $rule[1];
-                $fieldValue = $rule[2];
+
+                $field_value = $rule[2];
+
                 $filtered = false;
-                if ($op === '=' && $fieldValue != $value->$fieldKey) {
+
+                if ($op === '=' && $field_value != $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
-                if ($op === '!=' && $fieldValue == $value->$fieldKey) {
+
+                if ($op === '!=' && $field_value == $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
-                if ($op === '<' && $fieldValue >= $value->$fieldKey) {
+
+                if ($op === '<' && $field_value >= $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
-                if ($op === '>' && $fieldValue <= $value->$fieldKey) {
+
+                if ($op === '>' && $field_value <= $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
-                if ($op === '<=' && $fieldValue > $value->$fieldKey) {
+
+                if ($op === '<=' && $field_value > $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
-                if ($op === '>=' && $fieldValue < $value->$fieldKey) {
+
+                if ($op === '>=' && $field_value < $value->$field_key) {
                     $filtered = true;
+
                     break;
                 }
             }
+
             if ($filtered) {
                 unset($list[$key]);
             }
         }
+
         return array_values($list);
     }
 
     /**
-     * @param string|null $entityType
+     * 
+     * @param string|null $entity_type
      * @return object
+     * @throws Exception
      */
-    public function getMetadata(
-        ?string $entityType = null
-    ): object {
+    public function getMetadata(?string $entity_type = null): object
+    {
         if (is_null($this->metadata)) {
-            $this->metadata = array_map(
-                function ($entityMetadata) {
-                    return new Entity($entityMetadata);
-                },
-                (array) $this->connection->get(
-                    static::BASE_URI . static::ENTITY_URI . static::METADATA_URI
-                )
-            );
+            $entities_pool = (array) $this->connection
+                ->get(static::BASE_URI . static::ENTITY_URI . static::METADATA_URI);
+
+            $this->metadata = array_map(function ($entity_metadata) {
+                return new Entity($entity_metadata);
+            }, $entities_pool);
         }
-        if (is_null($entityType)) {
+
+        if (is_null($entity_type)) {
             return $this->metadata;
         }
-        if (false === isset($this->metadata[$entityType])) {
-            throw new Exception("No {$entityType} metadata");
+
+        if (!isset($this->metadata[$entity_type])) {
+            throw new Exception("No {$entity_type} metadata");
         }
-        return $this->metadata[$entityType];
+
+        return $this->metadata[$entity_type];
     }
 
     /**
-     * @param array|string $subscriptionList
+     * 
+     * @param array|string $subscription_list
      * @param string $url
      * @return array
      */
-    public function addWebhooks(
-        $subscriptionList,
-        string $url
-    ): array {
-        if (is_string($subscriptionList)) {
-            $subscriptionList = [$subscriptionList];
+    public function addWebhooks($subscription_list, string $url): array
+    {
+        if (is_string($subscription_list)) {
+            $subscription_list = [$subscription_list];
         }
-        $actualSubscriptionList = $this->getWebhooks([['url', '=', $url]]);
+
+        $actual_subscription_list = $this->getWebhooks([['url', '=', $url]]);
+
         $responses = [];
-        foreach ($subscriptionList as $subscription) {
-            $subscriptionParts = explode('.', $subscription);
-            $entityType = $subscriptionParts[0];
-            $action = $subscriptionParts[1];
-            $filtered = array_filter(
-                $actualSubscriptionList,
-                function($hook)use($entityType, $action) {
-                    return $hook->entityType === $entityType && $hook->action === mb_strtoupper($action);
-                }
-            );
+
+        foreach ($subscription_list as $subscription) {
+            $subscription_parts = explode('.', $subscription);
+
+            $entity_type = $subscription_parts[0];
+
+            $action = $subscription_parts[1];
+
+            $filtered = array_filter($actual_subscription_list, function ($hook) use ($entity_type, $action) {
+                return $hook->entityType === $entity_type && $hook->action === mb_strtoupper($action);
+            });
+
             $filtered = array_values($filtered);
+
             if ($filtered) {
                 continue;
             }
-            $responses[] = $this->connection->post(
-                static::BASE_URI . static::HOOK_URI,
-                [
-                    'url' => $url,
-                    'action' => mb_strtoupper($action),
-                    'entityType' => $entityType
-                ]
-            );
+
+            $post_data = [
+                'url' => $url,
+                'action' => mb_strtoupper($action),
+                'entityType' => $entity_type
+            ];
+
+            $responses[] = $this->connection
+                ->post(static::BASE_URI . static::HOOK_URI, $post_data);
         }
+        
         return $responses;
     }
 
     /**
+     * 
      * @param string $id
      * @return object
      */
     public function getWebhook(string $id): object
     {
-        return $this->connection->get(static::BASE_URI . static::HOOK_URI . "/{$id}");
+        return $this->connection
+            ->get(static::BASE_URI . static::HOOK_URI . "/{$id}");
     }
 
     /**
+     * 
      * @param array $filter
      * @return array
      */
     public function getWebhooks(array $filter = []): array
     {
-        $webhookList = $this->connection->get(static::BASE_URI . static::HOOK_URI)->rows;
+        $webhook_list = $this->connection
+            ->get(static::BASE_URI . static::HOOK_URI)
+            ->rows;
+
         if (empty($filter)) {
-            return $webhookList;
+            return $webhook_list;
         }
-        return $this->filter($webhookList, $filter);
+        
+        return $this->filter($webhook_list, $filter);
     }
 
     /**
-     * @param array|string $subscriptionList
+     * @param array|string $subscription_list
      * @param string $url
      * @return array
      */
-    public function deleteWebhooks($subscriptionList, string $url): array
+    public function deleteWebhooks($subscription_list, string $url): array
     {
-        if (is_string($subscriptionList)) {
-            $subscriptionList = [$subscriptionList];
+        if (is_string($subscription_list)) {
+            $subscription_list = [$subscription_list];
         }
-        $actualSubscriptionList = $this->getWebhooks([['url', '=', $url]]);
+
+        $actual_subscription_list = $this->getWebhooks([['url', '=', $url]]);
+
         $responses = [];
-        foreach ($subscriptionList as $subscription) {
-            $subscriptionParts = explode('.', $subscription);
-            $entityType = $subscriptionParts[0];
-            $action = $subscriptionParts[1];
-            $filtered = array_values(array_filter($actualSubscriptionList, function ($hook)use($entityType, $action) {
-                return $hook->entityType === $entityType && $hook->action === mb_strtoupper($action);
-            }));
-            $isSigned = empty($filtered) ? false : true;
-            if ($isSigned) {
+
+        foreach ($subscription_list as $subscription) {
+            $subscription_parts = explode('.', $subscription);
+
+            $entity_type = $subscription_parts[0];
+
+            $action = $subscription_parts[1];
+
+            $filtered = array_filter(
+                $actual_subscription_list,
+                function ($hook) use ($entity_type, $action) {
+                    return $hook->entityType === $entity_type
+                        && $hook->action === mb_strtoupper($action);
+                }
+            );
+
+            $filtered = array_values($filtered);
+
+            $is_signed = empty($filtered) ? false : true;
+
+            if ($is_signed) {
                 $hook = $filtered[0];
-                $responses[] = $this->connection->delete($hook->meta->href);
+
+                $responses[] = $this->connection
+                    ->delete($hook->meta->href);
             }
         }
+
         return $responses;
     }
 
     /**
      * Get entities list with filtering
      *
-     * filterList example: [['sum', '>' '100'], ['sum', '<' '200']]
-     * opaerators: ['=', '>', '<', '>=', '<=', '!=', '~', '~=', '=~']
+     * filters_list example: [['sum', '>' '100'], ['sum', '<' '200']]
+     * operators: ['=', '>', '<', '>=', '<=', '!=', '~', '~=', '=~']
      *
-     * @param string $endPoint
-     * @param array $filterList
+     * @param string $end_point
+     * @param array $filters_list
      * @param int $limit
      * @param int $offset
-     * @param array $paramsList
+     * @param array $params_list
      * @return array
      */
     public function getCollection(
-        string $endPoint,
-        array $filterList = [],
+        string $end_point,
+        array $filters_list = [],
         int $limit = null,
         int $offset = null,
-        array $paramsList = []
-    ): array {
-        $queryLimit = $this->entitiesQueryLimitMax;
-        if ($limit && $queryLimit > $limit) {
-            $queryLimit = $limit;
+        array $params_list = []
+    ): array
+    {
+        $query_limit = $this->entities_query_limit_max;
+
+        if ($limit && $query_limit > $limit) {
+            $query_limit = $limit;
         }
-        if ($queryLimit <= 0) {
+
+        if ($query_limit <= 0) {
             return [];
         }
-        $href_base = static::BASE_URI . "/" . $endPoint . "?limit=" . $queryLimit;
-        foreach ($paramsList as $paramName=>$paramValue) {
-            if (is_null($paramValue)) {
+
+        $href_base = static::BASE_URI . '/' . $end_point . '?limit=' . $query_limit;
+
+        foreach ($params_list as $param_name => $param_value) {
+            if (is_null($param_value)) {
                 continue;
             }
-            $href_base = $href_base . '&' . $paramName . '=' . $paramValue;
+
+            $href_base = $href_base . '&' . $param_name . '=' . $param_value;
         }
-        if ($filterList) {
-            $filterURI = "filter=";
-            for ($i = 0; $i < count($filterList); $i++) {
-                $filter = $filterList[$i];
-                $filterURI = $filterURI . $filter[0] . $filter[1] . $filter[2];
-                if ($i === (count($filterList) - 1)) {
+
+        if ($filters_list) {
+            $filter_uri = 'filter=';
+
+            for ($i = 0; $i < count($filters_list); $i++) {
+                $filter = $filters_list[$i];
+
+                $filter_uri = $filter_uri . $filter[0] . $filter[1] . $filter[2];
+
+                if ($i === (count($filters_list) - 1)) {
                     break;
                 }
-                $filterURI = $filterURI . ';';
+
+                $filter_uri = $filter_uri . ';';
             }
-            $href_base = $href_base . "&" . $filterURI;
+
+            $href_base = $href_base . '&' . $filter_uri;
         }
+
         $offset = $offset ? $offset : 0;
+
         $list = [];
+
         do {
-            $href = $href_base . "&offset=" . $offset;
-            $response = $this->connection->get($href);
-            $entityDataList = $response->rows;
+            $href = $href_base . '&offset=' . $offset;
+
+            $response = $this->connection
+                ->get($href);
+
+            $entity_data_list = $response->rows;
+
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
             }
+
             $remainder = empty($remainder)
-                ? $limit - count($entityDataList)
-                : $remainder - count($entityDataList);
-            foreach ($entityDataList as $entityData) {
-                $list[] = new Entity($entityData, $this);
+                ? $limit - count($entity_data_list)
+                : $remainder - count($entity_data_list);
+
+            foreach ($entity_data_list as $entity_data) {
+                $list[] = new Entity($entity_data, $this);
             }
-            $offset = $offset + $queryLimit;
-            if ($remainder < $queryLimit) {
-                $queryLimit = $remainder;
+
+            $offset = $offset + $query_limit;
+
+            if ($remainder < $query_limit) {
+                $query_limit = $remainder;
             }
-        } while (count($list) < $limit && count($list) === $queryLimit);
+
+        } while (count($list) < $limit && count($list) === $query_limit);
+        
         return $list;
     }
 
     /**
+     * 
      * @param string $type
      * @param string $id
-     * @param bool $metadata
+     * @param bool $is_add_metadata
      * @return object
      */
-    public function createLink(
-        string $type,
-        string $id,
-        bool $metadata = false
-    ): object {
+    public function createLink(string $type, string $id, bool $is_add_metadata = false): object
+    {
         $link = (object) [
             'meta' => (object) [
-                'href' => static::BASE_URI . static::ENTITY_URI . "/{$type}/$id",
+                'href' => static::BASE_URI . static::ENTITY_URI . "/{$type}/{$id}",
                 'type' => $type,
                 'mediaType' => "application/json"
             ]
         ];
-        if ($metadata === true) {
-            $link->meta->metadataHref =
-                static::BASE_URI . static::ENTITY_URI . "/{$type}/metadata";
+
+        if ($is_add_metadata) {
+            $link->meta->metadataHref = static::BASE_URI . static::ENTITY_URI . "/{$type}/metadata";
         }
+
         return $link;
     }
 
     /**
-     * @param int|null $newValue
-     * @return void
+     * 
+     * @param int|null $new_value
+     * @return $this
      */
-    public function setEntitiesQueryLimitMax(
-        ?int $newValue
-    ): void {
-        $this->entitiesQueryLimitMax = is_null($newValue)
+    public function setEntitiesQueryLimitMax(?int $new_value): self
+    {
+        $this->entities_query_limit_max = is_null($new_value)
             ? self::ENTITIES_QUERY_LIMIT_MAX
-            : $newValue;
+            : $new_value;
+
+        return $this;
     }
 
     /**
+     * 
      * @return int
      */
     public function getEntitiesQueryLimitMax(): int
     {
-        return $this->entitiesQueryLimitMax;
+        return $this->entities_query_limit_max;
     }
 
     /**
-     * @param int|null $newValue
-     * @return void
+     * 
+     * @param int|null $new_value
+     * @return $this
      */
-    public function setEventsQueryLimitMax(
-        ?int $newValue
-    ): void {
-        $this->eventsQueryLimitMax = is_null($newValue)
+    public function setEventsQueryLimitMax(?int $new_value): self
+    {
+        $this->events_query_limit_max = is_null($new_value)
             ? self::EVENTS_QUERY_LIMIT_MAX
-            : $newValue;
+            : $new_value;
+
+        return $this;
     }
 
     /**
+     * 
      * @return int
      */
     public function getEventsQueryLimitMax(): int
     {
-        return $this->eventsQueryLimitMax;
+        return $this->events_query_limit_max;
     }
+    
 }

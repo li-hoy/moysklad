@@ -11,35 +11,56 @@ use Psr\Http\Message\ResponseInterface;
 
 class Query extends Base
 {
-    protected
-        $client,
-        $request;
+    
+    /**
+     * 
+     * @var Client
+     */
+    protected $client;
 
-    public function __construct(
-        Client $client,
-        string $method,
-        string $url
-    ) {
+    /**
+     * 
+     * @var Request
+     */
+    protected $request;
+
+    /**
+     * 
+     * @param Client $client
+     * @param string $method
+     * @param string $url
+     */
+    public function __construct(Client $client, string $method, string $url)
+    {
         $this->client = $client;
+
         $this->request = new Request($method, $url);
     }
 
     /**
      *
-     * @param array $requestData
+     * @param array<string, mixed> $request_data
      * @return ResponseInterface
+     * @throws Exception
      */
-    public function send(array $requestData = []): ResponseInterface
+    public function send(array $request_data = []): ResponseInterface
     {
         try {
-            return $this->client->send($this->request, ['json' => $requestData]);
+            return $this->client
+                ->send($this->request, ['json' => $request_data]);
         } catch (BadResponseException $exception) {
             $message = "";
-            $responseContent = $exception->getResponse()->getBody()->getContents();
-            $errors = \json_decode($responseContent)->errors;
+
+            $response_content = $exception->getResponse()
+                ->getBody()
+                ->getContents();
+
+            $errors = \json_decode($response_content)->errors;
+
             foreach ($errors as $error) {
                 $message = $message . ' ' . $error->error . ';';
             }
+
             throw new Exception($message);
         }
     }
@@ -51,6 +72,8 @@ class Query extends Base
     protected function delay(): void
     {
         $delayTime = intval($this->client->delay * 1000000);
+
         \usleep($delayTime);
     }
+
 }

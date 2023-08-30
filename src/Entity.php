@@ -8,94 +8,145 @@ use Lihoy\Moysklad\Client;
 
 class Entity extends Base
 {
-    protected
-        $additional_fields = [],
-        $data = [],
-        $client = null,
-        $changed = null,
-        $metadata = null,
-        $readonly = [],
-        $required = [],
-        $system = ['meta'],
-        $type = null;
+    
+    /**
+     * 
+     * @var array
+     */
+    protected $additional_fields;
 
     /**
-     * @param array|string $entityData
-     * @param Client $client
+     * 
+     * @var array
      */
-    public function __construct(
-        $entityData = null,
-        Client $client = null
-    ) {
+    protected $data;
+
+    /**
+     * 
+     * @var Client
+     */
+    protected $client;
+
+    /**
+     * 
+     * @var array
+     */
+    protected $changed;
+
+    /**
+     * 
+     * @var object
+     */
+    protected $metadata;
+
+    /**
+     * 
+     * @var array
+     */
+    protected $readonly;
+
+    /**
+     * 
+     * @var array
+     */
+    protected $required;
+
+    /**
+     * 
+     * @var array
+     */
+    protected $system = [
+        'meta',
+    ];
+
+    /**
+     * 
+     * @var string
+     */
+    protected $type;
+
+
+    /**
+     * 
+     * @param array|string $entity_data
+     * @param Client $client
+     * @throws Exception
+     */
+    public function __construct($entity_data = null, Client $client = null)
+    {
         $this->client = $client;
-        if (is_object($entityData)) {
-            if (false === isset($entityData->meta)) {
+
+        if (is_object($entity_data)) {
+            if (!isset($entity_data->meta)) {
                 throw new Exception("'meta' field is required");
             }
-            foreach ($entityData as $fieldName=>$fieldValue) {
-                $this->data[$fieldName] = $this->updateField($fieldValue);
+
+            foreach ($entity_data as $field_name => $field_value) {
+                $this->data[$field_name] = $this->updateField($field_value);
             }
+
             $this->type = $this->data['meta']->type ?? null;
         }
-        if (is_string($entityData)) {
-            $this->type = $entityData;
+
+        if (is_string($entity_data)) {
+            $this->type = $entity_data;
         }
+
         $this->changed = [];
     }
 
     /**
      *
-     * @param string $fieldName
+     * @param string $field_name
      * @return mixed
      */
-    public function __get($fieldName)
+    public function __get($field_name)
     {
-        if (array_key_exists($fieldName, $this->data)) {
-            return $this->data[$fieldName];
+        if (array_key_exists($field_name, $this->data)) {
+            return $this->data[$field_name];
         }
-        if ($fieldName === 'id') {
+
+        if ($field_name === 'id') {
             return $this->parseId();
         }
-        $additionalFieldList = [];
-        if (
-            isset($this->data['attributes'])
-            && is_array($this->data['attributes'])
-        ) {
-            $additionalFieldList = $this->data['attributes'];
+
+        $additional_field_list = [];
+
+        if (isset($this->data['attributes']) && is_array($this->data['attributes'])) {
+            $additional_field_list = $this->data['attributes'];
         }
-        foreach ($additionalFieldList as $additionalField) {
-            if (false === isset($additionalField->name)) {
+
+        foreach ($additional_field_list as $additional_field) {
+            if (!isset($additional_field->name)) {
                 continue;
             }
-            if ($additionalField->name === $fieldName) {
-                return $additionalField;
+
+            if ($additional_field->name === $field_name) {
+                return $additional_field;
             }
         }
-        throw new Exception(
-            "Trying to get a non-existent field '{$fieldName}' value."
-        );
+
+        throw new Exception("Trying to get a non-existent field '{$field_name}' value.");
     }
 
     /**
      *
-     * @param string $fieldName
-     * @param mixed $fieldValue
+     * @param string $field_name
+     * @param mixed $field_value
      * @return void
+     * @throws Exception
      */
-    public function __set($fieldName, $fieldValue): void
+    public function __set($field_name, $field_value): void
     {
-        if (
-            in_array($fieldName, $this->readonly)
-            && false === is_null($this->changed)
-        ) {
-            throw new Exception(
-                "Trying to set a value to a read-only field."
-            );
+        if (in_array($field_name, $this->readonly) && !is_null($this->changed)) {
+            throw new Exception("Trying to set a value to a read-only field.");
         }
-        if (false === is_null($this->changed)) {
-            $this->changed[] = $fieldName;
+
+        if (!is_null($this->changed)) {
+            $this->changed[] = $field_name;
         }
-        $this->data[$fieldName] = $this->updateField($fieldValue);
+
+        $this->data[$field_name] = $this->updateField($field_value);
     }
 
     /**
@@ -115,9 +166,11 @@ class Entity extends Base
     protected function updateData(object $data): bool
     {
         $this->data = [];
-        foreach ($data as $fieldName=>$fieldValue) {
-            $this->data[$fieldName] = $this->updateField($fieldValue);
+
+        foreach ($data as $field_name => $field_value) {
+            $this->data[$field_name] = $this->updateField($field_value);
         }
+
         return true;
     }
 
@@ -128,97 +181,122 @@ class Entity extends Base
     protected function updateField($field)
     {
         if (is_array($field)) {
-            foreach ($field as &$subField) {
-                $subField = $this->updateField($subField);
+            foreach ($field as &$sub_field) {
+                $sub_field = $this->updateField($sub_field);
             }
+
             return $field;
         }
+
         if (is_object($field)) {
-            foreach ($field as $subFieldName=>$subFieldValue) {
-                $field->$subFieldName =
-                    $this->updateField($subFieldValue);
+            foreach ($field as $sub_field_name => $sub_field_value) {
+                $field->$sub_field_name =
+                    $this->updateField($sub_field_value);
             }
-            if (
-                isset($field->meta)
-                && false === is_a($field, static::class)
-            ) {
+
+            if (isset($field->meta) && !is_a($field, static::class)) {
                 $field = new static($field, $this->client);
             }
         }
+
         return $field;
     }
 
     /**
+     * Additional fields
+     * 
      * @param string|null $name
      * @param mixed $value
      * @return mixed
+     * @throws Exception
      */
-    public function af(
-        ?string $name = null,
-        $value = null
-    ) {
-        $additionalFieldList = isset($this->data['attributes'])
+    public function af(?string $name = null, $value = null)
+    {
+        $additional_field_list = isset($this->data['attributes'])
             ? $this->data['attributes']
             : [];
+
         // get all
         if (is_null($name)) {
-            return $additionalFieldList;
+            return $additional_field_list;
         }
+
         // get or update
-        foreach ($additionalFieldList as &$addField) {
-            if ($addField->name === $name) {
-                if (false === is_null($value)) {
-                    $addField->value = $value;
-                    if (false === in_array('attributes', $this->changed)) {
-                        $this->changed[] = 'attributes';
-                    }
-                    return true;
-                }
-                return $addField;
+        foreach ($additional_field_list as &$add_field) {
+            if ($add_field->name !== $name) {
+                continue;
             }
-        }
-        $metaAdditionalFieldList = $this->getMetaAdditionalFields();
-        $additionalField = null;
-        foreach ($metaAdditionalFieldList as $addField) {
-            if ($addField->name === $name) {
-                $additionalField = $addField;
+
+            if (is_null($value)) {
+                return $add_field;
             }
+
+            $add_field->value = $value;
+
+            if (!in_array('attributes', $this->changed)) {
+                $this->changed[] = 'attributes';
+            }
+
+            return true;
         }
-        if (is_null($additionalField)) {
-            throw new Exception(
-                "Trying to get non-existent additional field '{$name}' value."
-            );
+
+        $meta_additional_fields_list = $this->getMetaAdditionalFields();
+
+        $additional_field = null;
+
+        foreach ($meta_additional_fields_list as $add_field) {
+            if ($add_field->name !== $name) {
+                continue;
+            }
+
+            $additional_field = $add_field;
+
+            break;
         }
-        $additionalField->value = null;
+
+        if (is_null($additional_field)) {
+            throw new Exception("Trying to get non-existent additional field '{$name}' value.");
+        }
+
+        $additional_field->value = null;
+
+        // get
         if (is_null($value)) {
-            return $additionalField;
+            return $additional_field;
         }
+
         // set
-        $additionalField->value = $value;
-        if (false === isset($this->data['attributes'])) {
+        $additional_field->value = $value;
+
+        if (!isset($this->data['attributes'])) {
             $this->data['attributes'] = [];
         }
-        $this->data['attributes'][] = $additionalField;
-        if (false === in_array('attributes', $this->changed)) {
+
+        $this->data['attributes'][] = $additional_field;
+
+        if (!in_array('attributes', $this->changed)) {
             $this->changed[] = 'attributes';
         }
-        return $additionalField;
+
+        return $additional_field;
     }
 
     /**
+     * 
      * @return array
      */
     public function getMetaAdditionalFields(): array
     {
         if (empty($this->additional_fields)) {
-            $this->additional_fields = $this->client->getEntities(
-                "{$this->type}/metadata/attributes"
-            );
+            $this->additional_fields = $this->client
+                ->getEntities("{$this->type}/metadata/attributes");
         }
+
         return $this->additional_fields;
     }
 
     /**
+     * 
      * @return object
      */
     public function getMetadata(): object
@@ -226,31 +304,36 @@ class Entity extends Base
         if (is_null($this->metadata)) {
             $this->metadata = $this->client->getMetadata($this->type);
         }
+
         return $this->metadata;
     }
 
     /**
+     * 
      * @return string
      */
     protected function parseId(): string
     {
-        $uriParts = explode('/', $this->data['meta']->href);
-        return end($uriParts);
+        $uri_parts = explode('/', $this->data['meta']->href);
+
+        return end($uri_parts);
     }
 
     /**
      *
-     * @param array $fieldNamesList
+     * @param array $field_names_list
      * @return object
      */
-    public function map(array $fieldNamesList): object
+    public function map(array $field_names_list): object
     {
         $out = (object) [];
-        foreach ($fieldNamesList as $fieldName) {
-            if (isset($this->data[$fieldName])) {
-                $out->$fieldName = $this->data[$fieldName];
+
+        foreach ($field_names_list as $field_name) {
+            if (isset($this->data[$field_name])) {
+                $out->$field_name = $this->data[$field_name];
             }
         }
+        
         return $out;
     }
 
@@ -261,195 +344,259 @@ class Entity extends Base
      * @param int $offset
      * @return array
      */
-    public function getEvents(
-        int $limit = null,
-        int $offset = null
-    ): array {
-        $queryLimit = $this->client->getEventsQueryLimitMax();
-        if ($limit && $limit < $queryLimit) {
-            $queryLimit = $limit;
+    public function getEvents(int $limit = null, int $offset = null): array
+    {
+        $query_limit = $this->client
+            ->getEventsQueryLimitMax();
+
+        if ($limit && $limit < $query_limit) {
+            $query_limit = $limit;
         }
+
         $offset = is_null($offset) ? 0 : $offset;
-        $totalCount = 0;
-        $eventList = [];
+
+        $total_count = 0;
+
+        $event_list = [];
+
         do {
-            $href = $this->data['meta']->href . "/audit?limit=" . $queryLimit . "&offest=" . $offset;
-            $response = $this->client->connection->get($href);
+            // "offest" - ???
+            $href = $this->data['meta']->href . '/audit?limit=' . $query_limit . '&offest=' . $offset;
+
+            $response = $this->client
+                ->connection
+                ->get($href);
+
             $rows = $response->rows;
+
             if (is_null($limit)) {
                 $limit = $response->meta->size - $offset;
             }
-            $eventList = array_merge($eventList, $rows);
-            $totalCount = $totalCount + count($rows);
+
+            $event_list = array_merge($event_list, $rows);
+
+            $total_count = $total_count + count($rows);
+
             $offset = $offset + count($rows);
+
             $remainder = empty($remainder)
                 ? $limit - count($rows)
                 : $remainder - count($rows);
-            $queryLimit = $queryLimit <= $remainder ? $queryLimit : $remainder;
-            if (($remainder + $queryLimit) > $limit) {
-                $queryLimit = $limit - $totalCount;
+
+            $query_limit = ($query_limit <= $remainder) ? $query_limit : $remainder;
+
+            if (($remainder + $query_limit) > $limit) {
+                $query_limit = $limit - $total_count;
             }
-        } while ($totalCount < $limit);
-        return $eventList;
+
+        } while ($total_count < $limit);
+
+        return $event_list;
     }
 
     /**
-     * @param string $searchType
+     * 
+     * @param string $search_type
      * @param int|null $recursive
      * @param int $limit
      * @param string|null $expand
      * @return array
      */
     public function getLinkedEntities(
-        string $searchType,
+        string $search_type,
         ?int $recursive = null,
         int $limit = 1,
         ?string $expand = null
-    ): array {
-        $resultLinkedEntityList = [];
-        foreach($this->getData() as $linkedEnitiesType=>$linkedEntityList) {
-            if (in_array($linkedEnitiesType, ['attributes', 'positions', 'files'])) {
+    ): array
+    {
+        $result_linked_entities_List = [];
+
+        foreach($this->getData() as $linked_entities_type => $linked_entities_list) {
+            if (in_array($linked_entities_type, ['attributes', 'positions', 'files'])) {
                 continue;
             }
-            if (is_a($linkedEntityList, static::class)) {
-                $linkedEntityList = [$linkedEntityList];
+
+            if (is_a($linked_entities_list, static::class)) {
+                $linked_entities_list = [$linked_entities_list];
             }
-            if (false === is_array($linkedEntityList)) {
+
+            if (!is_array($linked_entities_list)) {
                 continue;
             }
-            if (empty($linkedEntityList)) {
+
+            if (empty($linked_entities_list)) {
                 continue;
             }
-            $entityType = $linkedEntityList[0]->type ?? null;
+
+            $entityType = $linked_entities_list[0]->type ?? null;
+
             if (is_null($entityType)) {
                 continue;
             }
-            if ($entityType === $searchType) {
-                $resultLinkedEntityList = array_merge(
-                    $resultLinkedEntityList,
-                    $linkedEntityList
+
+            if ($entityType === $search_type) {
+                $result_linked_entities_List = array_merge(
+                    $result_linked_entities_List,
+                    $linked_entities_list
                 );
-                $limit = $limit - count($linkedEntityList);
+
+                $limit = $limit - count($linked_entities_list);
+
                 if ($limit <= 0) {
-                    return $resultLinkedEntityList;
+                    return $result_linked_entities_List;
                 }
             }
-            if (false === is_null($recursive) && $recursive > 0) {
-                $recurciveLinkedEntityList = [];
-                $hrefList = [];
-                foreach ($linkedEntityList as $l_entity) {
-                    if (false === isset($l_entity->meta->href)) {
+
+            if (!is_null($recursive) && $recursive > 0) {
+                $recursive_linked_entities_list = [];
+
+                $hrefs_list = [];
+
+                foreach ($linked_entities_list as $linked_entity) {
+                    if (!isset($linked_entity->meta->href)) {
                         continue;
                     }
-                    $hrefList[] = $l_entity->meta->href;
+
+                    $hrefs_list[] = $linked_entity->meta->href;
                 }
-                $linkedEntityList_expanded = $this->client->getEntitiesByHref($hrefList, $expand);
-                foreach ($linkedEntityList_expanded as $linkedEntity) {
-                    $recurciveLinkedEntityList = array_merge(
-                        $recurciveLinkedEntityList,
-                        call_user_func_array(
-                            [$linkedEntity, __FUNCTION__],
-                            [$searchType, $recursive - 1, $limit, $expand]
-                        )
+
+                $linked_entities_list_expanded = $this->client
+                    ->getEntitiesByHref($hrefs_list, $expand);
+
+                foreach ($linked_entities_list_expanded as $linked_entity) {
+                    $sub_linked_entities = call_user_func_array(
+                        [$linked_entity, __FUNCTION__],
+                        [$search_type, $recursive - 1, $limit, $expand]
                     );
+
+                    $recursive_linked_entities_list = array_merge($recursive_linked_entities_list, $sub_linked_entities);
                 }
-                $resultLinkedEntityList = array_merge(
-                    $resultLinkedEntityList,
-                    $recurciveLinkedEntityList
-                );
+
+                $result_linked_entities_List = array_merge($result_linked_entities_List, $recursive_linked_entities_list);
             }
         }
-        return $resultLinkedEntityList;
+
+        return $result_linked_entities_List;
     }
 
     /**
+     * 
      * @param string $needle
      * @param string $by
-     * @return void
+     * @return $this
      */
-    public function setState(
-        string $needle,
-        string $by = 'name'
-    ): void {
+    public function setState(string $needle, string $by = 'name'): self
+    {
         $this->__set('state', $this->getState($needle, $by));
-    }
 
-    /**
-     * @param array $filter
-     * @return array
-     */
-    public function getStates(
-        array $filter = []
-    ) {
-        $stateList = $this->client->getMetadata($this->type)->states;
-        if (empty($filter)) {
-            return $stateList;
-        }
-        return $this->client->filter($stateList, $filter);
-    }
-
-    /**
-     * @param string $needle
-     * @param string $by
-     * @return object
-     */
-    public function getState(
-        string $needle,
-        string $by = 'name'
-    ) {
-        $stateList = $this->getStates([[$by, '=', $needle]]);
-        if (empty($stateList)) {
-            throw new Exception("State with $by = $needle doesn`t exist");
-        }
-        return $stateList[0];
-    }
-
-    /**
-     * @return bool
-     */
-    public function remove(): bool
-    {
-        if (false === isset($this->data['meta']->href)) {
-            throw new Exception("It is not possible to delete a non-existent entity.");
-        }
-        $response = $this->client->getConnection()->query('DELETE', $this->data['meta']->href);
-        return true;
-    }
-
-    /**
-     * @return bool|$this
-     */
-    public function save()
-    {
-        $requestData = [];
-        foreach ($this->required as $fieldName) {
-            $requestData[$fieldName] =
-                $this->getFieldData($this->data[$fieldName]);
-        }
-        foreach ($this->changed as $fieldName) {
-            if (in_array($fieldName, $this->required)) {
-                continue;
-            }
-            $requestData[$fieldName] =
-                $this->getFieldData($this->data[$fieldName]);
-        }
-        if (empty($requestData)) {
-            return false;
-        }
-        $method = 'POST';
-        $href = Client::BASE_URI . Client::ENTITY_URI . '/' . $this->type;
-        if (isset($this->data['meta'])) {
-            $requestData['meta'] = $this->data['meta'];
-            $method = 'PUT';
-            $href = $this->data['meta']->href;
-        }
-        $response = $this->client->getConnection()->query($method, $href, $requestData);
-        $this->updateData($response);
-        $this->changed = [];
         return $this;
     }
 
     /**
+     * 
+     * @param array $filter
+     * @return array
+     */
+    public function getStates(array $filter = []): array
+    {
+        $state_list = $this->client
+            ->getMetadata($this->type)
+            ->states;
+
+        if (empty($filter)) {
+            return $state_list;
+        }
+        
+        return $this->client
+            ->filter($state_list, $filter);
+    }
+
+    /**
+     * 
+     * @param string $needle
+     * @param string $by
+     * @return object
+     * @throws
+     */
+    public function getState(string $needle, string $by = 'name'): object
+    {
+        $states_list = $this->getStates([
+            [$by, '=', $needle],
+        ]);
+
+        if (empty($states_list)) {
+            throw new Exception("State with $by = $needle doesn`t exist");
+        }
+
+        return $states_list[0];
+    }
+
+    /**
+     * 
+     * @return $this
+     */
+    public function remove(): self
+    {
+        if (!isset($this->data['meta']->href)) {
+            throw new Exception("It is not possible to delete a non-existent entity.");
+        }
+
+        $this->client
+            ->getConnection()
+            ->query('DELETE', $this->data['meta']->href);
+
+        return $this;
+    }
+
+    /**
+     * 
+     * @return $this
+     */
+    public function save(): self
+    {
+        $request_data = [];
+
+        foreach ($this->required as $field_name) {
+            $request_data[$field_name] = $this->getFieldData($this->data[$field_name]);
+        }
+
+        foreach ($this->changed as $field_name) {
+            if (in_array($field_name, $this->required)) {
+                continue;
+            }
+
+            $request_data[$field_name] = $this->getFieldData($this->data[$field_name]);
+        }
+
+        if (empty($request_data)) {
+            return false;
+        }
+
+        $method = 'POST';
+
+        $href = Client::BASE_URI . Client::ENTITY_URI . '/' . $this->type;
+
+        if (isset($this->data['meta'])) {
+            $request_data['meta'] = $this->data['meta'];
+
+            $method = 'PUT';
+
+            $href = $this->data['meta']->href;
+        }
+
+        $response = $this->client
+            ->getConnection()
+            ->query($method, $href, $request_data);
+
+        $this->updateData($response);
+
+        $this->changed = [];
+
+        return $this;
+    }
+
+    /**
+     * 
      * @return object
      */
     protected function getData(): object
@@ -458,26 +605,31 @@ class Entity extends Base
     }
 
     /**
+     * 
      * @param array|object
      * @return mixed
      */
     protected function getFieldData($field)
     {
-        $fieldData = $field;
-        if (is_array($fieldData)) {
-            foreach ($fieldData as &$subField) {
-                $subField = $this->getFieldData($subField);
+        $field_data = $field;
+
+        if (is_array($field_data)) {
+            foreach ($field_data as &$sub_field) {
+                $sub_field = $this->getFieldData($sub_field);
             }
         }
-        if (is_object($fieldData)) {
-            if (is_a($fieldData, static::class)) {
-                $fieldData = $fieldData->getData();
+
+        if (is_object($field_data)) {
+            if (is_a($field_data, static::class)) {
+                $field_data = $field_data->getData();
             }
-            foreach ($fieldData as $subFieldName=>$subFieldValue) {
-                $fieldData->$subFieldName =
-                    $this->getFieldData($subFieldValue);
+
+            foreach ($field_data as $sub_field_name => $sub_field_value) {
+                $field_data->$sub_field_name = $this->getFieldData($sub_field_value);
             }
         }
-        return $fieldData;
+
+        return $field_data;
     }
+
 }

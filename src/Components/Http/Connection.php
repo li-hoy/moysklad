@@ -9,33 +9,62 @@ use Lihoy\Moysklad\Components\Http\Query;
 
 class Connection extends Base
 {
-    const
-        DELAY = 500,
-        TIMEOUT = 30.0,
-        POST_DATA_TYPE = 'json';
 
-    protected
-        $token,
-        $requestOptions,
-        $httpClient;
+    /**
+     * 
+     * @var int
+     */
+    public const DELAY = 500;
+
+    /**
+     * 
+     * @var float
+     */
+    public const TIMEOUT = 30.0;
+
+    /**
+     * 
+     * @var string
+     */
+    public const POST_DATA_TYPE = 'json';
+
+    /**
+     * 
+     * @var string
+     */
+    protected $token;
+
+    /**
+     * 
+     * @var array<string, mixed>
+     */
+    protected $request_options;
+
+    /**
+     * 
+     * @var HttpClient
+     */
+    protected $http_client;
 
     /**
      *
      * @param string $login
      * @param string $pass
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(string $login, string $pass, array $options = [])
     {
         $this->token = base64_encode($login . ':' . $pass);
-        $this->requestOptions = [
+
+        $this->request_options = [
             'headers' => [
                 'Authorization' => "Basic $this->token",
             ],
             'delay' => $options['delay'] ?? static::DELAY,
-            'timeout' => $options['timeout'] ?? static::TIMEOUT
+            'timeout' => $options['timeout'] ?? static::TIMEOUT,
         ];
-        $this->httpClient = new HttpClient($this->requestOptions);
+
+        $this->http_client = new HttpClient($this->request_options);
     }
 
     /**
@@ -85,19 +114,24 @@ class Connection extends Base
      *
      * @param string $method
      * @param string $url
-     * @param array $data
-     * @param boolean $json
+     * @param array<string, mixed> $data
+     * @param boolean $is_json
      * @return mixed
      */
-    public function query(string $method, string $url, array $data = [], bool $json = true)
+    public function query(string $method, string $url, array $data = [], bool $is_json = true)
     {
-        $query = new Query($this->httpClient, $method, $url);
+        $query = new Query($this->http_client, $method, $url);
+
         $response = $query->send($data);
+
         $body = $response->getBody();
+
         $content = $body->getContents();
-        if (false === $json) {
+
+        if (!$is_json) {
             return $response;
         }
+
         return \json_decode($content);
     }
 
@@ -107,16 +141,16 @@ class Connection extends Base
      */
     public function getToken(): string
     {
-        return $this->token;
+        return (string) $this->token;
     }
 
     /**
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getRequestOptions(): array
     {
-        return $this->requestOptions;
+        return (array) $this->request_options;
     }
 
     /**
@@ -128,30 +162,40 @@ class Connection extends Base
     public function setRequestOption(string $key, $value): self
     {
         if (is_array($value)) {
-            foreach ($value as $headerName=>$headerValue){
-                $this->requestOptions[$key][$headerName] = $headerValue;
+            foreach ($value as $header_name => $header_value){
+                $this->request_options[$key][$header_name] = $header_value;
             }
-        } else {
-            if (in_array($key, ['headers'])) {
-                throw new Exception("Wrong argument '$key' type, array expected.");
-            }
-            $this->requestOptions[$key] = $value;
+        } 
+
+        if ($key === 'headers' && !is_array($value)) {
+            throw new Exception("Wrong argument '$key' type, array expected.");
         }
+
+        if (!is_array($value)) {
+            $this->request_options[$key] = $value;
+        }
+
         if (is_null($value)) {
-            unset($this->requestOptions[$key]);
+            unset($this->request_options[$key]);
         }
-        $this->httpClient = new HttpClient($this->requestOptions);
+
+        $this->http_client = new HttpClient($this->request_options);
+
         return $this;
     }
 
     /**
      *
-     * @param float $delay
-     * @return void
+     * @param float $delay Delay in seconds
+     * @return $this
      */
-    public function setDelay(float $delay): void
+    public function setDelay(float $delay): self
     {
         $delay = intval($delay * 1000);
+
         $this->setRequestOption('delay', $delay);
+
+        return $this;
     }
+
 }
