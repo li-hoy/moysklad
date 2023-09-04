@@ -2,10 +2,11 @@
 
 namespace Lihoy\Moysklad;
 
-use Exception;
 use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Components\Http\Connection;
 use Lihoy\Moysklad\Entity;
+use Lihoy\Moysklad\Exceptions\NotFound as NotFoundException;
+use Lihoy\Moysklad\Exceptions\NotSupported as NotSupportedException;
 
 class Client extends Base
 {
@@ -219,6 +220,7 @@ class Client extends Base
      * @param bool $is_zero_lines_included
      * @param array $filters_list
      * @return array
+     * @throws NotSupportedException
      */
     public function getCurrentStock(
         bool $is_by_store = false,
@@ -232,31 +234,36 @@ class Client extends Base
         }
 
         if (!in_array($stock_type, ['stock', 'freeStock', 'quantity'])) {
-            throw new Exception("Wrong stock_type value $stock_type.");
+            throw new NotSupportedException("Wrong stock_type value $stock_type.");
         }
+
+        $stock_partition_by = ($is_by_store ? 'bystore' : 'all');
         
-        $end_point = 'report/stock/' . ($is_by_store ? 'bystore' : 'all') . '/current' . "?stockType={$stock_type}";
+        $end_point = "report/stock/{$stock_partition_by}/current?"
+            . "stockType={$stock_type}";
 
         if ($is_zero_lines_included) {
             $end_point = $end_point . '&include=zeroLines';
         }
 
-        if ($filters_list) {
-            $filter_uri = "filter=";
+        $filter_uri = '';
 
-            for ($i = 0; $i < count($filters_list); $i++) {
-                $filter = $filters_list[$i];
+        for ($i = 0; $i < count($filters_list); $i++) {
+            $filter = $filters_list[$i];
 
-                $filter_uri = $filter_uri . $filter[0] . $filter[1] . $filter[2];
+            $filter_uri .= $filter[0]
+                . $filter[1]
+                . $filter[2];
 
-                if ($i === (count($filters_list) - 1)) {
-                    break;
-                }
-
-                $filter_uri = $filter_uri . ';';
+            if ($i === (count($filters_list) - 1)) {
+                break;
             }
 
-            $end_point = $end_point . "&" . $filter_uri;
+            $filter_uri .= ';';
+        }
+
+        if (!empty($filter_uri)) {
+            $end_point .= "&filter=" . $filter_uri;
         }
         
         return $this->connection
@@ -267,13 +274,14 @@ class Client extends Base
      * 
      * @param string $uid
      * @return Entity
+     * @throws NotSupportedException
      */
     public function getEmployeeByUid(string $uid): Entity
     {
         $employees_list = $this->getEntities('employee', [['uid', '=', $uid]]);
 
         if (empty($employees_list)) {
-            throw new Exception("Employee with $uid doesn`t exist.");
+            throw new NotSupportedException("Employee with $uid doesn`t exist.");
         }
 
         return $employees_list[0];
@@ -286,6 +294,8 @@ class Client extends Base
      * @param string $event_type
      * @param string|null $uid
      * @return Entity
+     * @throws NotFoundException
+     * @throws NotSupportedException
      */
     public function getAuditEvent(
         string $audit_href,
@@ -311,11 +321,11 @@ class Client extends Base
         $filtered_event_list = array_values($filtered_event_list);
 
         if (count($filtered_event_list) > 1) {
-            throw new Exception("Events filtering error.");
+            throw new NotSupportedException("Events filtering error.");
         }
 
         if (empty($filtered_event_list[0])) {
-            throw new Exception("No event matching parameters: {$entity_type}, {$event_type}, {$uid}, {$audit_href}");
+            throw new NotFoundException("No event matching parameters: {$entity_type}, {$event_type}, {$uid}, {$audit_href}");
         }
 
         return $filtered_event_list[0];
@@ -391,7 +401,7 @@ class Client extends Base
      * 
      * @param string|null $entity_type
      * @return object
-     * @throws Exception
+     * @throws NotFoundException
      */
     public function getMetadata(?string $entity_type = null): object
     {
@@ -409,7 +419,7 @@ class Client extends Base
         }
 
         if (!isset($this->metadata[$entity_type])) {
-            throw new Exception("No {$entity_type} metadata");
+            throw new NotFoundException("No {$entity_type} metadata");
         }
 
         return $this->metadata[$entity_type];

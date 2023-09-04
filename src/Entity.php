@@ -2,9 +2,10 @@
 
 namespace Lihoy\Moysklad;
 
-use Exception;
 use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Client;
+use Lihoy\Moysklad\Exceptions\NotFound as NotFoundException;
+use Lihoy\Moysklad\Exceptions\NotSupported as NotSupportedException;
 
 class Entity extends Base
 {
@@ -70,7 +71,7 @@ class Entity extends Base
      * 
      * @param array|string $entity_data
      * @param Client $client
-     * @throws Exception
+     * @throws NotSupportedException
      */
     public function __construct($entity_data = null, Client $client = null)
     {
@@ -78,7 +79,7 @@ class Entity extends Base
 
         if (is_object($entity_data)) {
             if (!isset($entity_data->meta)) {
-                throw new Exception("'meta' field is required");
+                throw new NotSupportedException("'meta' field is required");
             }
 
             foreach ($entity_data as $field_name => $field_value) {
@@ -99,6 +100,7 @@ class Entity extends Base
      *
      * @param string $field_name
      * @return mixed
+     * @throws NotFoundException
      */
     public function __get($field_name)
     {
@@ -126,7 +128,7 @@ class Entity extends Base
             }
         }
 
-        throw new Exception("Trying to get a non-existent field '{$field_name}' value.");
+        throw new NotFoundException("Trying to get a non-existent field '{$field_name}' value.");
     }
 
     /**
@@ -134,12 +136,12 @@ class Entity extends Base
      * @param string $field_name
      * @param mixed $field_value
      * @return void
-     * @throws Exception
+     * @throws NotSupportedException
      */
     public function __set($field_name, $field_value): void
     {
         if (in_array($field_name, $this->readonly) && !is_null($this->changed)) {
-            throw new Exception("Trying to set a value to a read-only field.");
+            throw new NotSupportedException("Trying to set a value to a read-only field.");
         }
 
         if (!is_null($this->changed)) {
@@ -208,7 +210,7 @@ class Entity extends Base
      * @param string|null $name
      * @param mixed $value
      * @return mixed
-     * @throws Exception
+     * @throws NotFoundException
      */
     public function af(?string $name = null, $value = null)
     {
@@ -255,7 +257,7 @@ class Entity extends Base
         }
 
         if (is_null($additional_field)) {
-            throw new Exception("Trying to get non-existent additional field '{$name}' value.");
+            throw new NotFoundException("Trying to get non-existent additional field '{$name}' value.");
         }
 
         $additional_field->value = null;
@@ -516,7 +518,7 @@ class Entity extends Base
      * @param string $needle
      * @param string $by
      * @return object
-     * @throws
+     * @throws NotFoundException
      */
     public function getState(string $needle, string $by = 'name'): object
     {
@@ -525,7 +527,7 @@ class Entity extends Base
         ]);
 
         if (empty($states_list)) {
-            throw new Exception("State with $by = $needle doesn`t exist");
+            throw new NotFoundException("State with $by = $needle doesn`t exist");
         }
 
         return $states_list[0];
@@ -534,11 +536,12 @@ class Entity extends Base
     /**
      * 
      * @return $this
+     * @throws NotSupportedException
      */
     public function remove(): self
     {
         if (!isset($this->data['meta']->href)) {
-            throw new Exception("It is not possible to delete a non-existent entity.");
+            throw new NotSupportedException('It is not possible to delete a non-existent entity.');
         }
 
         $this->client

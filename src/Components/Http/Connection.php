@@ -2,10 +2,10 @@
 
 namespace Lihoy\Moysklad\Components\Http;
 
-use Exception;
 use GuzzleHttp\Client as HttpClient;
 use Lihoy\Moysklad\Base;
 use Lihoy\Moysklad\Components\Http\Query;
+use Lihoy\Moysklad\Exceptions\NotSupported as NotSupportedException;
 
 class Connection extends Base
 {
@@ -158,6 +158,7 @@ class Connection extends Base
      * @param string $key
      * @param mixed $value
      * @return $this
+     * @throws NotSupportedException
      */
     public function setRequestOption(string $key, $value): self
     {
@@ -168,7 +169,7 @@ class Connection extends Base
         } 
 
         if ($key === 'headers' && !is_array($value)) {
-            throw new Exception("Wrong argument '$key' type, array expected.");
+            throw new NotSupportedException("Wrong argument '$key' type, array expected.");
         }
 
         if (!is_array($value)) {
